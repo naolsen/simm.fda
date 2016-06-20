@@ -37,8 +37,6 @@
 #'
 #' @details ppMulti returns error if applied on one-dimensional functional data.
 #' 
-#' @aliases simm.fda
-#' 
 #' Control parameters
 #' lower, upper, method, ndeps, maxit will be sent to optim. See optim for more details. 
 #' The first entries of lower/upper correspond to warp parameters, while the rest corresponds to
@@ -46,6 +44,8 @@
 #' This is for consistency with randomCycle and optimRule.
 #' 
 #' randomCycle and optimRule are two ways of optimizing on only a subset of the parameters at a time. TBD: descriptions of these.
+#'
+#' @aliases simm.fda
 #'
 #' @seealso 
 #' Important details can be found in simm-fda-short-desc.pdf

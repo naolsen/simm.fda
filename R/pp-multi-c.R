@@ -41,6 +41,7 @@
 #' @param w0 
 #' 
 #' @details There has been less check on this function, so I cannot guarantee that it will behave as well as ppMulti.
+#' Requires \code{spam} package, used for faster calculations for sparse matrices.
 #'
 #' @return
 #' @export

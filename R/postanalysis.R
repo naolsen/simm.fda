@@ -33,7 +33,7 @@ predict_warps <- function(w, warp_fct, seq.length = 101, plot = TRUE, ...) {
   
   mw <- attr(warp_fct, 'mw')
   if (nrow(w) != mw) stop("w and warp function doesn't match")
-  tw <- attr(warp_fct, 'tw')
+
   n <- ncol(w)
   
   warp.val <- matrix(nc = n, nr = seq.length)

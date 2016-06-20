@@ -10,9 +10,9 @@ dekomp(Y)
 \item{Y}{}
 }
 \value{
-
+Y^{1/2}
 }
 \description{
-dekomp
+Positive definite square root of matrix
 }
 

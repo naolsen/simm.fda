@@ -2,7 +2,7 @@
 % Please edit documentation in R/postanalysis.R
 \name{predict_warps}
 \alias{predict_warps}
-\title{Warp function plot}
+\title{Evaluated warp functions}
 \usage{
 predict_warps(w, warp_fct, seq.length = 101, plot = TRUE, ...)
 }

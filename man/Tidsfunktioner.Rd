@@ -13,7 +13,7 @@ BMtid(s, t, bridge = TRUE)
 Materntid(s, t, range, smooth)
 }
 \arguments{
-\item{s, }{t time values}
+\item{s, t}{time values}
 
 \item{lambda}{drift}
 
@@ -26,14 +26,10 @@ Materntid(s, t, range, smooth)
 \description{
 Temporal covariance structures
 
-Temporal covariance structures
-
 Matern covariance structure: 
 2^(smooth-1)/gamma(smooth) * range^smooth ^ K_smooth(|s-t|/range)
 }
 \details{
-Time covariance functions should not be called directly.
-
-Time covariance functions should not be called directly.
+Time covariance functions should not be called directly. Either use as part of kovMat or call using outer.
 }
 

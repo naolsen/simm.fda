@@ -10,6 +10,7 @@
 #' 
 #' @param w warp values
 #' @param warp_fct
+#' @param tout Evaluation points. If missing, equidistant evaluation on [0,1] according to seq.length is used in the evaluation
 #' @param seq.length number of time points used in the evaluation.
 #' @param plot Plot the result? Uses matplot.
 #' @param ... arguments to be passed to matplot
@@ -29,23 +30,29 @@
 #' 
 #' }
 #' 
-predict_warps <- function(w, warp_fct, seq.length = 101, plot = TRUE, ...) {
+
+predict_warps <- function(w, warp_fct, seq.length = 101, plot = TRUE, tout , ...) {
   
   mw <- attr(warp_fct, 'mw')
   if (nrow(w) != mw) stop("w and warp function doesn't match")
-
+  
   n <- ncol(w)
   
-  warp.val <- matrix(nc = n, nr = seq.length)
-  ti <- seq(0, 1, length = seq.length)
+  if (!missing(tout)) ti <- tout
+  else ti <- seq(0, 1, length = seq.length)
+  
+  warp.val <- matrix(nc = n, nr =length(ti))
+
   
   for (i in 1:n) {
-    warp.val[,i] <- wf(w[i,], ti)
+    warp.val[,i] <- warp_fct(w[,i], ti)
   }
   if (plot) matplot(ti, warp.val, ...)
   
   return(warp.val)
 }
+
+
 
 
 #' Plot aligned data

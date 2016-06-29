@@ -192,10 +192,12 @@ poly.bridge <- function(tmin, tmax, coef) { ## Bemærk ændringer på parametris
 #'
 #' @seealso \link{poly.bro}, timefunction.bridge
 poly.larger <- function(tmin, tmax, coef) {
-  mat <- coef[2]*tmin*(1-tmax) + coef[1]
+  
+  tminmax <- tmin*(1-tmax)
+  mat <- coef[2]*tminmax + coef[1]
   if (length(coef) > 2) for (i in 3:length(coef))
   {
-    mat <- mat + coef[i] * (tmin*(1-tmax))^i
+    mat <- mat + coef[i] * tminmax^i
   }
   mat
 }
@@ -237,12 +239,12 @@ poly.Matern <- function(s,t, range, smooth, koef) {
 
 #' Timefunction and bridge
 #'
-#' Creates a 'bridged' time function, i.e. a combination of an 'ordinary' time function. 
+#' Creates a 'bridged' time function, i.e. a combination of an 'ordinary' time function and a bridge covariance. 
 #' As the result is a time function, it can be used in conjunction with kovMat.
 #'
 #' @param s,t 
 #' @param coef Coefficients for bridge
-#' @param timefunction 
+#' @param timefunction A timefunction
 #' @param ... Parameters passed to timefunction
 #'
 #' @return A time function structure.
@@ -256,7 +258,7 @@ poly.Matern <- function(s,t, range, smooth, koef) {
 #' 
 #' outer(ti , ti, f, param = c(0.2, 1, 0.7)) 
 #' outer(ti , ti, f, param = c(1, 0, 0.7)) 
-#' # Try make a contour plot to see the difference
+#' # Try make a contour plot to see the differences
 #' 
 #' 
 timefunction.bridge <- function(s, t, coef, timefunction,  ...) {

@@ -3,35 +3,37 @@
 \name{ppMulti}
 \alias{ppMulti}
 \alias{simm.fda}
-\title{Simulataneous inference for Misaligned Multivarariate functional data}
+\title{Simultaneous inference for Misaligned Multivarariate functional data}
 \usage{
 ppMulti(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
   iter = c(5, 5), parallel = list(n_cores = 1, parallel_likelihood = FALSE),
-  amp_cov_par = NULL, paramMax = rep(T, length(amp_cov_par)), w.c.p = T,
-  like.alt = F, like_optim_control = list(), pr = F, design = NULL,
-  win = F, save_temp = NULL)
+  w0 = NULL, amp_cov_par = NULL, paramMax = rep(T, length(amp_cov_par)),
+  w.c.p = T, like.alt = F, like_optim_control = list(), pr = F,
+  design = NULL, win = F, save_temp = NULL)
 }
 \arguments{
 \item{y}{list of observations in matrix form. NAs allowed}
 
-\item{t}{list of corresponding time points}
+\item{t}{list of corresponding time points. NAs not allowed}
 
-\item{basis_fct}{Basis fct.}
+\item{basis_fct}{Basis function for spline}
 
-\item{warp_fct}{Warp fct.}
+\item{warp_fct}{Warp function}
 
 \item{amp_cov}{Amplitude covariance. Must be on the form function(t, param)}
 
 \item{warp_cov}{Warp covariance}
 
-\item{iter}{two-dimensional integer of maximal number ofouter iterations 
+\item{iter}{two-dimensional integer of maximal number of outer iterations 
 and maxiamal number of inner iterations per outer iteration.}
 
 \item{parallel}{}
 
+\item{w0}{Starting values for warp. Not implemented yet and currently ignored.}
+
 \item{amp_cov_par}{Starting values for amplitude covariance parameters. There are no defaults.}
 
-\item{paramMax}{logical vecter. Which amplitude parameters to optimise over? Defaults to all parameters.}
+\item{paramMax}{Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.}
 
 \item{w.c.p}{Do not change}
 
@@ -41,9 +43,9 @@ and maxiamal number of inner iterations per outer iteration.}
 
 \item{pr}{print option}
 
-\item{design}{Design for the experiments. Should be given as a list of one-dimensional vectors.}
+\item{design}{Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.}
 
-\item{win}{}
+\item{win}{Should the inner optimization be done parallelly?}
 
 \item{save_temp}{Save estimates after each outer iteration? FALSE, NULL or the file path.}
 }
@@ -51,7 +53,7 @@ and maxiamal number of inner iterations per outer iteration.}
 A list of estimates
 }
 \description{
-Simulataneous inference for Misaligned Multivarariate functional data
+Simultaneous inference for Misaligned Multivarariate functional data
 }
 \details{
 ppMulti returns error if applied on one-dimensional functional data.

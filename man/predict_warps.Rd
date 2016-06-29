@@ -4,7 +4,7 @@
 \alias{predict_warps}
 \title{Evaluated warp functions}
 \usage{
-predict_warps(w, warp_fct, seq.length = 101, plot = TRUE, ...)
+predict_warps(w, warp_fct, seq.length = 101, plot = TRUE, tout, ...)
 }
 \arguments{
 \item{w}{warp values}
@@ -12,6 +12,8 @@ predict_warps(w, warp_fct, seq.length = 101, plot = TRUE, ...)
 \item{seq.length}{number of time points used in the evaluation.}
 
 \item{plot}{Plot the result? Uses matplot.}
+
+\item{tout}{Evaluation points. If missing, equidistant evaluation on [0,1] according to seq.length is used in the evaluation}
 
 \item{...}{arguments to be passed to matplot}
 }

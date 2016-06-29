@@ -11,7 +11,7 @@ timefunction.bridge(s, t, coef, timefunction, ...)
 
 \item{coef}{Coefficients for bridge}
 
-\item{timefunction}{}
+\item{timefunction}{A timefunction}
 
 \item{...}{Parameters passed to timefunction}
 }
@@ -19,7 +19,7 @@ timefunction.bridge(s, t, coef, timefunction, ...)
 A time function structure.
 }
 \description{
-Creates a 'bridged' time function, i.e. a combination of an 'ordinary' time function. 
+Creates a 'bridged' time function, i.e. a combination of an 'ordinary' time function and a bridge covariance. 
 As the result is a time function, it can be used in conjunction with kovMat.
 }
 \examples{
@@ -30,7 +30,7 @@ ti <- seq(0, 1, 0.02)
 
 outer(ti , ti, f, param = c(0.2, 1, 0.7)) 
 outer(ti , ti, f, param = c(1, 0, 0.7)) 
-# Try make a contour plot to see the difference
+# Try make a contour plot to see the differences
 
 
 }

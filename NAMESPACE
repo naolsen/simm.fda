@@ -31,5 +31,3 @@ export(splw.d)
 export(timefunction.bridge)
 export(w.shift)
 export(warp_and_shift_cov)
-export(Zi)
-

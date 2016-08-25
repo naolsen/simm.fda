@@ -102,7 +102,6 @@ kovMat <- function(t, a, tw, timefunction, stack = TRUE, noise = 0, ...) {
 #' @param lambda drift
 #' @rdname Tidsfunktioner
 #' 
-#' @return
 #' @export
 #'
 #' @examples

@@ -1,10 +1,10 @@
 
-
-## 
+# Som den skal v?re; kan overf?res til bibliotek.
+## Recent changes: Added feature warp_opt. Some parallel stuff de-implemented. Small cleanups
+# version 1.4
 
 ## Parametre:
 ## paramMax: Hvilke af amplitudeparametrene skal der maksimeres over?  upper & lower skal passe med disse.
-## w.c.p: pt ikke i brug. Skal v?re TRUE.
 
 ## win: s?t til falsk for ikke at parallelisere warp pr?diktioner. Kan v?re n?dvendigt for at undg? crash
 ## Parallel registering ikke laengere en del af ppMulti. Skal goeres inden kald af ppMulti.
@@ -13,39 +13,46 @@
 ## Vigtig ??ndring: Nu skal gr??nser angives korrekt ift. alle parametre, dvs length(upper) = n_par_warp + n_par_amp. De ikke-brugte gr??nser m?? gerne v??re tomme
 ## Tilsvarende for lower (faktisk nok mere intuitivt). aendringen er kun relevant hvis man ikke maksimerer over alle parametre.
 
-## At g?re: design kan angives som matrix. 
+
 
 #' Simultaneous inference for Misaligned Multivarariate functional data
 #'
-#' @param y list of observations in matrix form. NAs allowed
-#' @param t list of corresponding time points. NAs not allowed
+#' @param y List of observations in matrix form. NAs allowed
+#' @param t List of corresponding time points. NAs not allowed
 #' @param basis_fct Basis function for spline
 #' @param warp_fct Warp function
 #' @param amp_cov Amplitude covariance. Must be on the form function(t, param)
 #' @param warp_cov Warp covariance 
-#' @param iter two-dimensional integer of maximal number of outer iterations 
-#' and maxiamal number of inner iterations per outer iteration.
-#' @param parallel 
+#' @param iter two-dimensional integer of maximal number of outer iterations &
+#' maximal number of inner iterations per outer iteration.
 #' @param w0 Starting values for warp. Should only be used if you have results frmo a previous run.
 #' @param amp_cov_par Starting values for amplitude covariance parameters. There are no defaults.
 #' @param paramMax Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.
-#' @param w.c.p Do not change
-#' @param like.alt Do not change either
+#' @param like.alt Do not change
+#' @param warp_opt If FALSE, warp covariance parameters are kept fixed. 
 #' @param like_optim_control List of control options for optimization in outer loop. See details
-#' @param pr print option
+#' @param use.nlm Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.
+#' @param pr Printing option.
 #' @param design Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.
 #' @param win Should the inner optimization be done parallelly?
 #' @param save_temp Save estimates after each outer iteration? FALSE, NULL or the file path.
 #'
-#' @details ppMulti returns error if applied on one-dimensional functional data.
+#' @details ppMulti returns a warning if applied on one-dimensional functional data.
 #' 
-#' Control parameters
+#' Control parameters:
+#' 
+#' 
 #' lower, upper, method, ndeps, maxit will be sent to optim. See optim for more details. 
+#' If use.nlm is selected the optimization is performed using the nlm function. 
+#' Bounds are handled through a logit transformation. Note that the optimization will not be able to actually reach the bounds.
+#' Presently, the user cannot pass any control values to nlm.
+#' 
 #' The first entries of lower/upper correspond to warp parameters, while the rest corresponds to
 #' amplitude parameters. ppMulti does match upper/lower with corresponding entries in amp_cov, which is important when not all parameters are maximized over. 
 #' This is for consistency with randomCycle and optimRule.
 #' 
-#' randomCycle and optimRule are two ways of optimizing on only a subset of the parameters at a time. TBD: descriptions of these.
+#' randomCycle and optimRule are two ways of optimizing on only a subset of the parameters at a time. These overwrites the paramMax argument.
+#' TBD: descriptions of these.
 #'
 #' @aliases simm.fda
 #'
@@ -96,9 +103,9 @@
 #'
 
 ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
-                    parallel = list(n_cores = 1, parallel_likelihood = FALSE), w0 = NULL, 
-                    amp_cov_par=NULL, paramMax = rep(T,length(amp_cov_par)),  w.c.p = T, like.alt = F,
-                    like_optim_control = list(), pr=F, design = NULL, win =F, save_temp = NULL) {
+                     w0 = NULL, use.nlm = c(FALSE, FALSE),
+                    amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)),  like.alt = F, warp_opt = TRUE,
+                    like_optim_control = list(), pr=FALSE, design = NULL, win =F, save_temp = NULL) {
   nouter <- iter[1] + 1
   if (is.null(amp_cov) & is.null(warp_cov)) nouter <- 1
   ninner <- iter[2]
@@ -151,7 +158,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   if (mw == 0)  n_par_warp <- 0
   n_par_amp <- length(amp_cov_par)
   
-  p_warp <- if (!is.null(warp_cov)) 1:n_par_warp else c()
+  p_warp <- if (!is.null(warp_cov) && warp_opt) 1:n_par_warp else c()
   
   ## Check if no. of ( lower) parameter limits correspond to ...
   
@@ -182,7 +189,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   }
   if (!is.null(design) && length(design) != n) stop("design must have same length or number of rows as the length of y.")
   
-  if(!is.null(like_optim_control$parallel)) attr(amp_cov, "parallelLik") <- "T"
+  #if(!is.null(like_optim_control$parallel)) attr(amp_cov, "parallelLik") <- "T"
   
   
   # Build amplitude covariances and inverse covariances
@@ -271,7 +278,9 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
                 else cis[[i]] <- c 
                 # warp_optim_method <- 'Nelder-Mead'
                 warp_optim_method <- 'CG'
-                ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
+               if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
+               else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
+                
                 if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
                 return(ww)
               }
@@ -287,8 +296,9 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
             if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
             else cis[[i]] <- c 
             warp_optim_method <- 'Nelder-Mead'
-            ww0 <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)
-            ww <- ww0$par
+            if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
+            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
+           
             if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
             w_res[[i]] <- ww
           }
@@ -355,12 +365,12 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         rrr <- y[[i]]
         
         for (k in 1:K) {
-        rrr[,k] <- rrr[,k] - bf(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
+          rrr[,k] <- rrr[,k] - bf(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
         }
         r[[i]] <- rrr
       }
-
-     
+      
+      
     }
     
     # Check wheter the final outer loop has been reached
@@ -389,9 +399,14 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       if (n_par_warp > 0) like_fct <- function(pars) {
         
         par <- amp_cov_par
-        par[par1]<- pars[- (p_warp)]
-        if (w.c.p) param.w <- pars[p_warp]
-        else param.w <- warp_cov_par
+        if (warp_opt) {
+          param.w <- pars[p_warp]
+          par[par1]<- pars[- (p_warp)]
+        }
+        else {
+          param.w <- warp_cov_par
+          par[par1]<- pars
+        }
         likelihood(par, param.w, r = r, Zis = Zis, amp_cov = amp_cov, warp_cov = warp_cov, t = t, tw = tw, pr = pr)
         
       }
@@ -404,7 +419,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
       # Likelihood gradient
       like_gr <- NULL
-      if (parallel$parallel_likelihood) {
+      if (F && parallel$parallel_likelihood) { ## Currently de-implemented, may change in the future
         # Construct parallel gradient
         like_gr <- function(par) {
           epsilon <- 1e-5
@@ -446,16 +461,24 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
       # Optim??r!
       cat("Optimization (outer loop) \n")
-      paras <-  c(warp_cov_par, amp_cov_par[par1])
+      paras <- if (warp_opt) c(warp_cov_par, amp_cov_par[par1]) else amp_cov_par[par1]
       
-      like_optim <- optim(par = paras, like_fct, gr = like_gr, method = method, lower = lower0, upper = upper0, control = list(ndeps = ndeps, maxit = 20))
-      param <- like_optim$par
+
+      if (use.nlm[1]) {  ## nlm optimization
+        steptol <- if (is.null(like_optim_control$steptol)) 1e-6 else like_optim_control$steptol
+        like_optim <- nlm.bound(fct = like_fct , p = paras, lower = lower0, upper = upper0)
+        param <- like_optim$estimate
+        like_optim$value <- like_optim$minimum
+      }
+      else {    ## optim optimization
+        like_optim <- optim(par = paras, like_fct, gr = like_gr, method = method, lower = lower0, upper = upper0, control = list(ndeps = ndeps, maxit = 20))
+        param <- like_optim$par
+      }
       #    print(param)
       cat("Parameter values: ")
       
-      if (!is.null(warp_cov)) warp_cov_par <- param[p_warp]
-      if (!is.null(amp_cov)) 
-        amp_cov_par[par1] <- if (n_par_warp > 0) param[- (p_warp)] else param
+      if (!is.null(warp_cov) && warp_opt) warp_cov_par <- param[p_warp]
+      if (!is.null(amp_cov)) amp_cov_par[par1] <- if (length(p_warp) > 0) param[- (p_warp)] else param
       
       if (like_optim$value <= like_best) {
         # Save parameters
@@ -513,7 +536,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
 
 ## Kontrolparametre: alle defaulter til NULL
 ## maxit: maximum af iterationer i \tt{optim} i ydre loop
-## randomCycle: vektor af laengde to. [1] angiver antal tilfaeldigt udtrukne paramertre;
+## randomCycle: vektor af laengde to. [1] angiver antal tilfaeldigt udtrukne parametre;
 ## [2] hvornaar cyklen skal begynde
 ## optim.rule: cyclisk optimering. liste bestaaende af hvilke parametre der skal opdateres i hvilken blok
 ## Alle parametre boer vaere indeholdt og der maa gerne vaere gentagelser. attr(, 'min') kan bruges til at saette hvornaar opim.rule skal begynde
@@ -525,8 +548,8 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
 #' 
 #' @description Calculates the posterior likelihood for a single curve.
 #'
-#' @param w warp values
-#' @param warp_fct 
+#' @param w Warp values
+#' @param warp_fct Warp function
 #' @param t time points
 #' @param y observations
 #' @param basis_fct 
@@ -534,7 +557,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
 #' @param Sinv Precision matrix for amplitude
 #' @param Cinv Precision matrix for w
 #'
-#' @return
+#' @return Value of posterior likelihood
 #' @export
 #'
 posterior.lik <- function(w, warp_fct, t, y, basis_fct, c, Sinv, Cinv) {

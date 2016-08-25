@@ -38,7 +38,7 @@ Brown <- function(t, par = c(tau = 1, noise = 1), motion = FALSE) {
 #' @param t time points
 #' @param par parameters
 #'
-#' @return
+#' @return Covariance matrix for Matern covariance
 #' @export
 #'
 #' @examples 
@@ -75,7 +75,7 @@ poly.Matern.kov <- function( t, sig, range =1, smooth=200, koef2) {
 #' @param par vector with drift and noise terms.
 #'
 #' @details Note that the marginal variance (expect for noise) is assumed to be 1.
-#' @return
+#' @return Covariance matrix for OU process
 #' @export
 #'
 #' @examples

@@ -6,7 +6,7 @@
 
 #' Evaluated warp functions
 #'
-#' @description Returns and optionally plots predicted warps.
+#' @description Returns and (optionally) plots predicted warps.
 #' 
 #' @param w warp values
 #' @param warp_fct
@@ -64,10 +64,10 @@ predict_warps <- function(w, warp_fct, seq.length = 101, plot = TRUE, tout , ...
 #' @param type plot type
 #' @param ... Further arguments to be passed to plot and points. 
 #' 
-#' @description Much improvement needs to be done on this function.
+#' 
+#' @details Much improvement needs to be done on this function.
 #' 
 #'
-#' @return
 #' @export
 #'
 #' 

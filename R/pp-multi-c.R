@@ -278,17 +278,22 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
           Zis[[i]] <- Matrix(0, m[i]*K, mw)
         }
         
-        
-        rrr <- y[[i]]
-        for (k in 1:K) {
           
-          if (nrow(w) == 1) {
-            rrr[,k] <- rrr[,k] - basis_fct(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
-          } else {
-            rrr[,k] <- rrr[,k] -  basis_fct(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] %*% w[, i]
+          ## Opdateret. Hurtigere evaluering af y - r - Zw^0
+          if (nrow(w) != 1) {
+            z0 <-   as.numeric(bf(twarped) %*% cis[[i]]) - as.numeric(Zis[[i]] %*% w[, i])
+            r[[i]] <- y[[i]] - z0        
           }
-        }
-        r[[i]] <- rrr
+          
+          else {
+            rrr <- y[[i]]
+            
+            for (k in 1:K) {
+              rrr[,k] <- rrr[,k] - bf(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
+            }
+            r[[i]] <- rrr
+          }
+        
       }
       # Update spline weights
 
@@ -405,17 +410,20 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         Zis[[i]] <- Matrix(0, m[i]*K, mw)
       }
       
-      
-      rrr <- y[[i]]
-      for (k in 1:K) {
-        
-        if (nrow(w) == 1) {
-          rrr[,k] <- rrr[,k] - basis_fct(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
-        } else {
-          rrr[,k] <- rrr[,k] -  basis_fct(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] %*% w[, i]
-        }
+      ## Opdateret. Hurtigere evaluering af y - r - Zw^0
+      if (nrow(w) != 1) {
+        z0 <-   as.numeric(bf(twarped) %*% cis[[i]]) - as.numeric(Zis[[i]] %*% w[, i])
+        r[[i]] <- y[[i]] - z0        
       }
-      r[[i]] <- rrr
+      
+      else {
+        rrr <- y[[i]]
+        
+        for (k in 1:K) {
+          rrr[,k] <- rrr[,k] - bf(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
+        }
+        r[[i]] <- rrr
+      }
     }
     
     ## If warps are strange, try to re-run inner loop and compare. warp_cov has to be.
@@ -841,20 +849,4 @@ pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp
 return(list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, warp_cov_par = warp_cov_par_best, sigma = sigma, like = like_best, Zis = Zis, r = r))
 }
 
-#' simm.fda
-#' 
-#' @param t 
-#' @param basis_fct 
-#' @param warp_fct 
-#' @param amp_cov 
-#' @param warp_cov 
-#' @param iter 
-#' @param parallel 
-#' @param amp_cov_par 
-#' @param paramMax 
-#' @param w.c.p 
-#' @rdname simm.fda
-#' 
-#' 
-#' 
 

@@ -6,15 +6,15 @@
 \title{Simultaneous inference for Misaligned Multivarariate functional data}
 \usage{
 ppMulti(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
-  iter = c(5, 5), parallel = list(n_cores = 1, parallel_likelihood = FALSE),
-  w0 = NULL, amp_cov_par = NULL, paramMax = rep(T, length(amp_cov_par)),
-  w.c.p = T, like.alt = F, like_optim_control = list(), pr = F,
-  design = NULL, win = F, save_temp = NULL)
+  iter = c(5, 5), w0 = NULL, use.nlm = c(FALSE, FALSE),
+  amp_cov_par = NULL, paramMax = rep(TRUE, length(amp_cov_par)),
+  like.alt = F, warp_opt = TRUE, like_optim_control = list(),
+  pr = FALSE, design = NULL, win = F, save_temp = NULL)
 }
 \arguments{
-\item{y}{list of observations in matrix form. NAs allowed}
+\item{y}{List of observations in matrix form. NAs allowed}
 
-\item{t}{list of corresponding time points. NAs not allowed}
+\item{t}{List of corresponding time points. NAs not allowed}
 
 \item{basis_fct}{Basis function for spline}
 
@@ -24,24 +24,24 @@ ppMulti(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
 
 \item{warp_cov}{Warp covariance}
 
-\item{iter}{two-dimensional integer of maximal number of outer iterations 
-and maxiamal number of inner iterations per outer iteration.}
+\item{iter}{two-dimensional integer of maximal number of outer iterations &
+maximal number of inner iterations per outer iteration.}
 
-\item{parallel}{}
+\item{w0}{Starting values for warp. Should only be used if you have results frmo a previous run.}
 
-\item{w0}{Starting values for warp. Not implemented yet and currently ignored.}
+\item{use.nlm}{Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.}
 
 \item{amp_cov_par}{Starting values for amplitude covariance parameters. There are no defaults.}
 
 \item{paramMax}{Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.}
 
-\item{w.c.p}{Do not change}
+\item{like.alt}{Do not change}
 
-\item{like.alt}{Do not change either}
+\item{warp_opt}{If FALSE, warp covariance parameters are kept fixed.}
 
 \item{like_optim_control}{List of control options for optimization in outer loop. See details}
 
-\item{pr}{print option}
+\item{pr}{Printing option.}
 
 \item{design}{Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.}
 
@@ -56,15 +56,22 @@ A list of estimates
 Simultaneous inference for Misaligned Multivarariate functional data
 }
 \details{
-ppMulti returns error if applied on one-dimensional functional data.
+ppMulti returns a warning if applied on one-dimensional functional data.
 
-Control parameters
+Control parameters:
+
+
 lower, upper, method, ndeps, maxit will be sent to optim. See optim for more details. 
+If use.nlm is selected the optimization is performed using the nlm function. 
+Bounds are handled through a logit transformation. Note that the optimization will not be able to actually reach the bounds.
+Presently, the user cannot pass any control values to nlm.
+
 The first entries of lower/upper correspond to warp parameters, while the rest corresponds to
 amplitude parameters. ppMulti does match upper/lower with corresponding entries in amp_cov, which is important when not all parameters are maximized over. 
 This is for consistency with randomCycle and optimRule.
 
-randomCycle and optimRule are two ways of optimizing on only a subset of the parameters at a time. TBD: descriptions of these.
+randomCycle and optimRule are two ways of optimizing on only a subset of the parameters at a time. These overwrites the paramMax argument.
+TBD: descriptions of these.
 }
 \examples{
 \\link{example}

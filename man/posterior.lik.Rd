@@ -7,9 +7,9 @@
 posterior.lik(w, warp_fct, t, y, basis_fct, c, Sinv, Cinv)
 }
 \arguments{
-\item{w}{warp values}
+\item{w}{Warp values}
 
-\item{warp_fct}{}
+\item{warp_fct}{Warp function}
 
 \item{t}{time points}
 
@@ -22,6 +22,9 @@ posterior.lik(w, warp_fct, t, y, basis_fct, c, Sinv, Cinv)
 \item{Sinv}{Precision matrix for amplitude}
 
 \item{Cinv}{Precision matrix for w}
+}
+\value{
+Value of posterior likelihood
 }
 \description{
 Calculates the posterior likelihood for a single curve.

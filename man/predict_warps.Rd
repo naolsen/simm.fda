@@ -21,7 +21,7 @@ predict_warps(w, warp_fct, seq.length = 101, plot = TRUE, tout, ...)
 A matrix of dim seq.length x n
 }
 \description{
-Returns and optionally plots predicted warps.
+Returns and (optionally) plots predicted warps.
 }
 \examples{
  

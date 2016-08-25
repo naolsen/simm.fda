@@ -11,6 +11,9 @@ Maternk(t, par = c(range = 1, smooth = 2, noise = 1))
 
 \item{par}{parameters}
 }
+\value{
+Covariance matrix for Matern covariance
+}
 \description{
 Matern covariance
 }

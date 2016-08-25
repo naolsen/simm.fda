@@ -20,6 +20,9 @@ align_data_plot(y, t, w, warp_fct, coords, type = "l", ...)
 \item{...}{Further arguments to be passed to plot and points.}
 }
 \description{
+Plot aligned data
+}
+\details{
 Much improvement needs to be done on this function.
 }
 

@@ -11,6 +11,9 @@ OUproces(t, par = c(lambda = 1, noise = 0))
 
 \item{par}{vector with drift and noise terms.}
 }
+\value{
+Covariance matrix for OU process
+}
 \description{
 Ornstein-Uhlenbeck process
 }

@@ -9,3 +9,5 @@ I will do my best to ensure all changes are included here
 
 
 25-08-16: Various minor improvements and changes. ppMulti has received some changes.
+
+28-09-16: Added Fourier basis as a basis function

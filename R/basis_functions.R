@@ -1,4 +1,5 @@
-#' Generate basis function
+
+#' Generate B-spline basis function
 #'
 #' Method for generating a 'basis function' function
 #' @param kts a sequence of increasing points specifying the placement of the knots.
@@ -8,6 +9,8 @@
 #' @param boundary boundary knots.
 #' @keywords spline
 #' @export
+#' 
+#' @seealso \link{make_fourier_basis}
 
 
 #TODO: EXPLICIT DERIVATIVES!!
@@ -51,6 +54,7 @@ make_basis_fct <- function(kts, intercept = FALSE, increasing = FALSE, order = 3
 #' @keywords spline
 #' @note Method is a corrected version of the increasing spline basis code in the \code{SVMMaj} package.
 #' @export
+#' 
 
 ispline <- function (x, knots, d) {
   if (is.null(knots) || any(is.na(knots)) || any(diff(knots) == 0) || length(knots) <= 2)
@@ -82,38 +86,45 @@ ispline <- function (x, knots, d) {
   return(I)
 }
 
-# TODO: SPARSE VERSION!
-# TODO: M-SPLINE FUNCTION FOR DERIVATIVES!
+
+#' Generate Fourier basis function
+#'
+#' Generates a fourier basis 'basis function'
+#' @param endpoints Left and right endpoints. 
+#' @param order Order of harmonics
+#'
+#' @details The evaluated function has intercept at its first index , followed first by cosine coefficients and then by sine coefficients, both in increasing order.
+#'
+#' @export
+#' 
+#' @seealso \link{make_basis_fct}
+#' 
+make_fourier_basis <- function(endpoints, order) {
+  if (length(endpoints) < 2) stop("Two endpoints must be provided")
+  else if (endpoints[2] <= endpoints[1]) stop("Left endpoint must be strictly smaller than right endpoint.")
+  else if (order < 1) stop("Order must be strictly positive")
+  else if (length(endpoints) > 2) warning("Only the two first values will be used")
+  
+  
+  eleft <- endpoints[1]
+  eright <- endpoints[2]
+  laengde <- 2*pi/(eright - eleft) ## Skalering ift. 2*pi-intervallet.
+  
+  fourier <- function(x, deriv = FALSE) {
+    x <- laengde*(x - eleft)
+    if (deriv) {
+      laengde*  matrix(c(rep(0, length(x)), -sin(outer(x, 1:order)) * rep(1:order, each = length(x)), 
+               cos(outer(x, 1:order)) * rep(1:order, each = length(x))), length(x), 2*order+1)
+    }
+    else matrix(c(rep(1, length(x)), cos(outer(x, 1:order)), sin(outer(x, 1:order))), length(x), 2*order+1)
+  }
+  attr(fourier, 'df') <- 2*order+1
+  attr(fourier, 'order') <- order
+  attr(fourier, 'endpoints') <- c(eleft, eright)
+  
+  fourier
+}
 
 
-# ispline2 <- function(t, knots, order) {
-#   if (is.null(knots) || any(is.na(knots)) || any(diff(knots) == 0) || length(knots) <= 2)
-#     return(t)
-#
-#   m <- length(t)
-#   nk <- length(knots)
-#   interval <- findInterval(t, knots, all.inside = TRUE) + order
-#   knots <- c(rep(knots[1], order), knots, rep(knots[nk], order))
-#   nk <- length(knots)
-#
-#   ti_diff <- diff(knots)
-#   ti_diff_inv <- ifelse(ti_diff == 0, 0, 1 / ti_diff)
-#   M <- t(t(sapply(1:(nk - 1), `==`, interval)) * ti_diff_inv)
-#
-#   for (k in 2:(order + 1)) {
-#     ti_diff <- c(diff(knots, lag = k), rep(0, k - 1))
-#     ti_diff_inv <- ifelse(ti_diff == 0, 0, 1 / ti_diff)
-#     i1 <- c(2:(nk - 1), nk - 1)
-#     ik <- c((k + 1):(nk - 1), rep(nk, k))
-#     M <- (M - M[, i1]) * t - t(t(M) * knots[-nk]) + t(t(M[, i1]) * knots[ik])
-#     M <- t(t(M) * ti_diff_inv * k / (k - 1))
-#   }
-#   M <- t(t(M) * ti_diff / k)
-#   M <- M[, -c(1, (nk - order):(nk - 1))]
-#
-#   S <- array(1, dim = rep(NCOL(M), 2))
-#   S[upper.tri(S)] <- 0
-#
-#   I <- M %*% S
-#   return(I)
-# }
+
+

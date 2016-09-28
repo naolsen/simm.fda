@@ -2,7 +2,7 @@
 % Please edit documentation in R/basis_functions.R
 \name{make_basis_fct}
 \alias{make_basis_fct}
-\title{Generate basis function}
+\title{Generate B-spline basis function}
 \usage{
 make_basis_fct(kts, intercept = FALSE, increasing = FALSE, order = 3,
   boundary = c(0, 1))
@@ -20,6 +20,9 @@ make_basis_fct(kts, intercept = FALSE, increasing = FALSE, order = 3,
 }
 \description{
 Method for generating a 'basis function' function
+}
+\seealso{
+\link{make_fourier_basis}
 }
 \keyword{spline}
 

@@ -34,6 +34,8 @@ Brown <- function(t, par = c(tau = 1, noise = 1), motion = FALSE) {
 
 ## Matern
 #' Matern covariance
+#' 
+#' Matern covariance with noise
 #'
 #' @param t time points
 #' @param par parameters

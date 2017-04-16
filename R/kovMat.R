@@ -1,10 +1,12 @@
-### En anden ramme til krydskorrelationer hvori der kan ekstrapoleres variansmatricer.
+  ### En anden ramme til krydskorrelationer hvori der kan ekstrapoleres variansmatricer.
 
 #' dekomp
 #' 
 #' Positive definite square root of matrix
 #'
-#' @param Y 
+#' @param Y Positivite definite matrix
+#' 
+#' @details Does not check if Y is positive definite
 #'
 #' @return Y^{1/2}
 #'
@@ -25,7 +27,7 @@ dekomp <- function(Y) {
 #' @description Linearly interpolates matrices a1 and a2. Used in dynamical covariance structures.
 #' Typically positive definite, but not a requirement for this function.
 #' @details a1 and a2 should have same size. This is NOT checked.
-#' @return An array of 
+#' @return A three-dimensional array of interpolated matrices
 #' @export
 #' @seealso kovMat
 #'  
@@ -50,17 +52,16 @@ MatInterpolate <- function(t, a1, a2) {
 #' @param a list of matrices
 #' @param tw Anchor points. Must be in increasing order
 #' @param timefunction Temporal covariance structure
-#' @param stack How should stack the observations. TRUE corresponds to the implementation of ppMUlti, while FALSE is the order ordering.
+#' @param stack How should stack the observations. TRUE corresponds to the implementation of ppMUlti, while FALSE is the alternative ordering.
 #' @param noise Noise. Either a single number or a vector of length K*length(t)
 #' @param ... Parameters passed to timefunction
 #' 
-#' @details 
+#' @description The machinery for handling dynamical covariance structure
 #'  
 #'
 #' @return A positive definite covariance matrix
 #' @export
 #'
-#' @examples
 #' @references See pdf simm.fda for introduction and of details of dynamical covariance structure
 kovMat <- function(t, a, tw, timefunction, stack = TRUE, noise = 0, ...) {
     z <- length(tw)
@@ -68,7 +69,7 @@ kovMat <- function(t, a, tw, timefunction, stack = TRUE, noise = 0, ...) {
     lt <- length(t)
     
     bmat <- matrix(nc = adim * lt, nr = adim)
-    # tw2 <- tw[-1]
+    
     for (j in 1:(z - 1)) {
         g <- t >= tw[j] & t <= tw[j + 1]
         ti <- t[g]
@@ -87,7 +88,6 @@ kovMat <- function(t, a, tw, timefunction, stack = TRUE, noise = 0, ...) {
     
     (t(bmat) %*% bmat) * (outer(t, t, timefunction, ...) %x% matrix(1, nc = adim, nr = adim)) + diag(x = noise, 
         lt * adim)
-    # outer(bmat, bmat, FUN='%*%')
     
 }
 

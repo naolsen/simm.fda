@@ -8,7 +8,7 @@
 #' @details For combining shift with another type, use w.shift
 #' @keywords warping
 #' @export
-#' @seealso w.shift
+#' @seealso \link{w.shift}
 
 make_warp_fct <- function(type = c('shift', 'linear', 'piecewise-linear', 'smooth', 'identity'), tw = NULL, 
                           maxShift) {

@@ -11,3 +11,6 @@ I will do my best to ensure all changes are included here
 25-08-16: Various minor improvements and changes. ppMulti has received some changes.
 
 28-09-16: Added Fourier basis as a basis function
+
+16-04-17: Large update. A number of small twerks and increased performance and code cleaning. Updated basis_fct from pavpop and added integration with Functional package.
+(Functional package not needed to use simm.fda, avaliable on request, will be uploaded to github soon)

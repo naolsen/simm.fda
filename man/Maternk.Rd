@@ -15,10 +15,9 @@ Maternk(t, par = c(range = 1, smooth = 2, noise = 1))
 Covariance matrix for Matern covariance
 }
 \description{
-Matern covariance
+Matern covariance with noise
 }
 \examples{
 t <- seq(0,1 , 0.01)
 Maternk(t, c(0.1, 2, 1))
 }
-

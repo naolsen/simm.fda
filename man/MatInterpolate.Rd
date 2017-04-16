@@ -12,7 +12,7 @@ MatInterpolate(t, a1, a2)
 \item{a1, }{a2  (positive definite) matrices of same dimensions.}
 }
 \value{
-An array of
+A three-dimensional array of interpolated matrices
 }
 \description{
 Linearly interpolates matrices a1 and a2. Used in dynamical covariance structures.
@@ -31,4 +31,3 @@ MatInterpolate(A1, A2)
 \seealso{
 kovMat
 }
-

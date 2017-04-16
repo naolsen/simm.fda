@@ -30,4 +30,3 @@ If any starting value is not strictly between its prescribed bounds, it is adjus
 \seealso{
 \link{nlm}
 }
-

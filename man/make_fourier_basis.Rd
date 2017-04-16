@@ -20,4 +20,3 @@ The evaluated function has intercept at its first index , followed first by cosi
 \seealso{
 \link{make_basis_fct}
 }
-

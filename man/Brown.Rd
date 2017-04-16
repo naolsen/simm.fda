@@ -16,4 +16,3 @@ Brown(t, par = c(tau = 1, noise = 1), motion = FALSE)
 \description{
 Brownian motion and Brownian bridge
 }
-

@@ -22,4 +22,3 @@ Generalise \code{poly.bridge} to arbitrary order.
 \seealso{
 \link{poly.bro}, timefunction.bridge
 }
-

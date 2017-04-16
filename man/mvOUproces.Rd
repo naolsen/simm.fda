@@ -18,4 +18,3 @@ mvOUproces(t, lambda = 1, sig, noise = 0)
 \description{
 Multivariate OU process
 }
-

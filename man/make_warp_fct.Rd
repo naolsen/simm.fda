@@ -21,7 +21,6 @@ This function generates a certain kind of warping function that can be used by p
 For combining shift with another type, use w.shift
 }
 \seealso{
-w.shift
+\link{w.shift}
 }
 \keyword{warping}
-

@@ -15,7 +15,7 @@ kovMat(t, a, tw, timefunction, stack = TRUE, noise = 0, ...)
 
 \item{timefunction}{Temporal covariance structure}
 
-\item{stack}{How should stack the observations. TRUE corresponds to the implementation of ppMUlti, while FALSE is the order ordering.}
+\item{stack}{How should stack the observations. TRUE corresponds to the implementation of ppMUlti, while FALSE is the alternative ordering.}
 
 \item{noise}{Noise. Either a single number or a vector of length K*length(t)}
 
@@ -25,12 +25,8 @@ kovMat(t, a, tw, timefunction, stack = TRUE, noise = 0, ...)
 A positive definite covariance matrix
 }
 \description{
-Dynamical covariance structure
-}
-\details{
-
+The machinery for handling dynamical covariance structure
 }
 \references{
 See pdf simm.fda for introduction and of details of dynamical covariance structure
 }
-

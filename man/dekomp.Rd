@@ -7,7 +7,7 @@
 dekomp(Y)
 }
 \arguments{
-\item{Y}{}
+\item{Y}{Positivite definite matrix}
 }
 \value{
 Y^{1/2}
@@ -15,4 +15,6 @@ Y^{1/2}
 \description{
 Positive definite square root of matrix
 }
-
+\details{
+Does not check if Y is positive definite
+}

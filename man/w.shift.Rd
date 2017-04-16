@@ -17,4 +17,3 @@ A warp function with one extra parameter
 \description{
 Create shift-&-warp function
 }
-

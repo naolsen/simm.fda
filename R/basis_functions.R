@@ -148,12 +148,16 @@ make_fourier_basis <- function(endpoints, order) {
 #' @param kts a sequence of increasing points specifying the placement of the knots.
 #' @param df degrees of freedom of the spline basis. Knots are chosen equidistantly.
 #' @param type the type of basis function you want. Currently supported choices are \code{'B-spline'},
-#' \code{'increasing'} and \code{'constant'}. 'intercept' is equivalent to 'constant'. See details for more information.
-#' @param intercept logical. Should the basis include an intercept?
+#' \code{'increasing'}, \code{'Fourier'} and \code{'constant'}. 'intercept' is equivalent to 'constant'. See details for more information.
+#' @param intercept logical. Should the basis include an intercept? Only used for types 'B-spline' and 'increasing'; all other types include intercept.
 #' @param control list of control parameters. Most importantly is \code{boundary} which
 #' contains boundary points for a B-spline basis. See details for more options.
+#' 
+#' @details type 'Fourier' calls make_fourier_basis with make_fourier_basis(kts, df %/% 2) and returns an error if 'df' isn't an odd number.
 #' @keywords spline
 #' @export
+#' @seealso \link{make_fourier_basis}
+#' 
 #' @examples
 #' # Basis function knots
 #' kts <- seq(0, 1, length = 12)[2:11]
@@ -201,9 +205,9 @@ make_fourier_basis <- function(endpoints, order) {
 #' pos_weights <- spline_weights(y, t, basis_fct = basis_fct_inc)
 #' lines(t, A_inc %*% pos_weights, col = 'blue', lwd = 2)
 
-make_basis_fct <- function(kts = NULL, df = NULL, type = 'B-spline', intercept = FALSE, control = list()) {
+make_basis_fct <- function(kts = NULL, df = NULL, type = 'B-spline', intercept = TRUE, control = list(), ...) {
   # Match type
-  types <- c('B-spline', 'increasing', 'constant', 'Fourier', 'wavelet', 'intercept')
+  types <- c('B-spline', 'increasing', 'constant', 'Fourier', 'intercept')
   type <- types[pmatch(type, types)]
   if (type == "'intercept") type <- 'constant'
   
@@ -270,7 +274,7 @@ make_basis_fct <- function(kts = NULL, df = NULL, type = 'B-spline', intercept =
   #
   # Increasing spline basis
   #
-  if (type == 'constant') {
+  if (type == 'increasing') {
     # Extract order og I-spline basis
     if (is.null(control$order)) {
       order <- 3
@@ -313,9 +317,18 @@ make_basis_fct <- function(kts = NULL, df = NULL, type = 'B-spline', intercept =
     return(b)
   }
   
-  attr(b, 'df') <- length(kts) + order - 1 - 1 * (type == 'increasing') + intercept
-  attr(b, 'intercept') <- intercept
-  attr(b, 'constraints') <- constraints
+  # Niels: Tilføjet fourier-mulighed.
+  # Fourier basis.
+  #
+  if (type == "Fourier") {
+    if (df %% 2 != 1) stop(df)
+    b <- make_fourier_basis(kts, df %/% 2)
+    intercept <- TRUE
+  }
+  
+  if(is.null(attr(b, 'df')))  attr(b, 'df') <- length(kts) + order - 1 - 1 * (type == 'increasing') + intercept
+    attr(b, 'intercept') <- intercept
+    attr(b, 'constraints') <- constraints
   return(b)
 }
 

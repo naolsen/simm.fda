@@ -159,7 +159,8 @@ w.shift <- function(warp.fct, maxShift) {
   attributes(wff) <- attributes(warp.fct)
   attr(wff, "mw") <- attr(warp.fct, "mw") + 1 
   attr(wff, "maxShift") <- maxShift
-  return(wff)
+  
+  wff
 }
 
 

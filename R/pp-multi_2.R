@@ -366,7 +366,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
       ## Opdateret. Hurtigere evaluering af y - r - Zw^0
       if (nrow(w) != 1) {
-        
         r[[i]] <- y[[i]] - as.numeric(basis_fct(twarped) %*% cis[[i]]) + as.numeric(Zis[[i]] %*% w[, i])
       }
       

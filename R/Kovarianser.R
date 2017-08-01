@@ -16,14 +16,13 @@ minFkt <- function(s, t) {
 
 #' Brownian motion and Brownian bridge
 #'
-#' @param t 
+#' @param t time points
 #' @param par Two-dimensional. Variance of BB/BM and variance of noise.
 #' @param motion logical. Brownian bridge or brownian motion
 #'
-#' @return
+#' @return 
 #' @export
 #'
-#' @examples
 Brown <- function(t, par = c(tau = 1, noise = 1), motion = FALSE) {
     S <- outer(t, t, minFkt)
     if (!motion) 
@@ -80,7 +79,6 @@ poly.Matern.kov <- function( t, sig, range =1, smooth=200, koef2) {
 #' @return Covariance matrix for OU process
 #' @export
 #'
-#' @examples
 OUproces <- function(t, par = c(lambda = 1, noise = 0)) {
     S <- outer(t, t, FUN = function(x, y) {
         abs(x - y)
@@ -93,7 +91,7 @@ OUproces <- function(t, par = c(lambda = 1, noise = 0)) {
 
 #' Multivariate OU process
 #'
-#' @param t 
+#' @param t time points
 #' @param lambda drift parameter.
 #' @param sig Marginal covariance. K x K matrix 
 #' @param noise 
@@ -101,7 +99,6 @@ OUproces <- function(t, par = c(lambda = 1, noise = 0)) {
 #' @return
 #' @export
 #'
-#' @examples
 mvOUproces <- function(t, lambda = 1, sig, noise = 0) {
     S <- outer(t, t, FUN = function(x, y) {
         abs(x - y)
@@ -189,7 +186,6 @@ c.mv.Matern <- function( t, range =1, smooth=200, par ) {
 #' 
 #' @description This is the simplest covariance function. 
 #'
-#' @return
 #' @export
 #'
 #' @examples 

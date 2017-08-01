@@ -28,7 +28,7 @@ make_warp_fct <- function(type = c('shift', 'linear', 'piecewise-linear', 'smoot
   }
     attr(v, 'initialize') <- 0
     attr(v, 'mw') <- 1
-    attr(wff, "maxShift") <- maxShift
+    attr(v, "maxShift") <- maxShift
     
   } else if (type == 'linear') {
     v <- function(w, t, w_grad = FALSE) {

@@ -7,7 +7,7 @@
 
 #' Brownian Bridge warp covariance
 #'
-#' @param default.value 
+#' @param default.value Default value
 #' 
 #' @description This is called default covariance function as this is typically used
 #' @return
@@ -24,7 +24,7 @@ default_warp_cov <- function(default.value) {
 
 #' Brownian Bridge warp covariance + shift parameter
 #'
-#' @param default.values 
+#' @param default.values c(shift variance, Brownian Bridge variance)
 #'
 #' @description Combines default_warp_cov and a shift parameter. Shift and warp are assumed to be independent.
 #' 
@@ -47,5 +47,22 @@ warp_and_shift_cov <- function(default.values) {
   g
   
 }
+
+#' Simple one-parameter covariance for pure shift
+#'
+#' @param default.value Default value
+#'
+#' @return
+#' @export
+#'
+shift_covariance <- function(default.value) {
+  g <- function(t, param) {
+    param^2
+  }
+  attr(g, 'param') <- c(shift = default.value)
+  g
+}
+  
+  
 
 

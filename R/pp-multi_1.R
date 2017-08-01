@@ -574,10 +574,10 @@ posterior.lik <- function(w, warp_fct, t, y, basis_fct, c, Sinv, Cinv) {
 #'
 #' @param y list of observations
 #' @param t list of time points
-#' @param warp_fct 
-#' @param w 
+#' @param warp_fct warping function
+#' @param w warp parameters
 #' @param Sinv precision matricees
-#' @param basis_fct 
+#' @param basis_fct Basis function
 #' @param weights weights (optional)
 #' @param K dimension
 #' @param design design
@@ -606,31 +606,56 @@ splw <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K) {
     dvec <- dvec + bSinv %*% as.numeric(y[[i]])
   }
   
-  
-  if (attr(basis_fct, 'increasing')) {
-    intercept <- attr(basis_fct, 'intercept')
-    indices <- 1:nb
-    rank <- rankMatrix(Dmat)[1]
-    index <- 1
-    
-    # Perhaps this can be done smarter or better?
-    while (length(indices) > rank) {
-      tmp_indices <- indices[indices != index]
-      if (rankMatrix(Dmat[tmp_indices, tmp_indices]) == rank) {
-        indices <- tmp_indices
-      }
-      index <- index + 1
-    }
-    c <- rep(0, ncol(basis))
-    c[indices] <- solve.QP(Dmat = Dmat[indices, indices],
-                           dvec = dvec[indices,],
-                           Amat = diag(nrow = length(indices)))$solution
-  } else {
-    c <- as.numeric(MASS::ginv(as.matrix(Dmat)) %*% dvec)
-  }
+  c <- as.numeric(MASS::ginv(as.matrix(Dmat)) %*% dvec)
   ce <- matrix(c, nc = K)
   return(ce)
 }
+
+
+
+
+# splw <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K) {
+#   n <- length(y)
+#   m <- sapply(y, nrow)
+#   nb <- attr(basis_fct, 'df')*K
+#   
+#   if (is.null(weights)) weights <- rep(1, n)
+#   
+#   Dmat <- matrix(0, nb, nb)
+#   dvec <- matrix(0, nb, 1)
+#   
+#   for (i in 1:n) {
+#     basis <-diag(K) %x%  basis_fct(warp_fct(w[, i], t[[i]]))
+#     bSinv <- weights[i] * (t(basis) %*% Sinv[[i]])
+#     Dmat <- Dmat + bSinv %*% basis
+#     dvec <- dvec + bSinv %*% as.numeric(y[[i]])
+#   }
+#   
+#   
+#   if (attr(basis_fct, 'increasing')) {
+#     intercept <- attr(basis_fct, 'intercept')
+#     indices <- 1:nb
+#     rank <- rankMatrix(Dmat)[1]
+#     index <- 1
+#     
+#     # Perhaps this can be done smarter or better?
+#     while (length(indices) > rank) {
+#       tmp_indices <- indices[indices != index]
+#       if (rankMatrix(Dmat[tmp_indices, tmp_indices]) == rank) {
+#         indices <- tmp_indices
+#       }
+#       index <- index + 1
+#     }
+#     c <- rep(0, ncol(basis))
+#     c[indices] <- solve.QP(Dmat = Dmat[indices, indices],
+#                            dvec = dvec[indices,],
+#                            Amat = diag(nrow = length(indices)))$solution
+#   } else {
+#     c <- as.numeric(MASS::ginv(as.matrix(Dmat)) %*% dvec)
+#   }
+#   ce <- matrix(c, nc = K)
+#   return(ce)
+# }
 
 ## Spline weights for individual designs. 
 #' Spline weights
@@ -639,7 +664,6 @@ splw <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K) {
 #' 
 #' @export
 #'
-
 splw.d <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K, design = list()) {
   
   n <- length(y)

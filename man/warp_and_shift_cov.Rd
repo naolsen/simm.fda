@@ -7,7 +7,7 @@
 warp_and_shift_cov(default.values)
 }
 \arguments{
-\item{default.values}{}
+\item{default.values}{c(shift variance, Brownian Bridge variance)}
 }
 \description{
 Combines default_warp_cov and a shift parameter. Shift and warp are assumed to be independent.
@@ -15,3 +15,4 @@ Combines default_warp_cov and a shift parameter. Shift and warp are assumed to b
 \seealso{
 \link{default_warp_cov}, \link{w.shift}
 }
+

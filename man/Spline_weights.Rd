@@ -15,13 +15,13 @@ splw.d(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K,
 
 \item{t}{list of time points}
 
-\item{warp_fct}{}
+\item{warp_fct}{warping function}
 
-\item{w}{}
+\item{w}{warp parameters}
 
 \item{Sinv}{precision matricees}
 
-\item{basis_fct}{}
+\item{basis_fct}{Basis function}
 
 \item{weights}{weights (optional)}
 
@@ -41,3 +41,4 @@ Spline weights
 splw is used when no design is supplied.
 splw.d is used when a desigen is supplied.
 }
+

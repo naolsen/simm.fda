@@ -7,7 +7,7 @@
 mvOUproces(t, lambda = 1, sig, noise = 0)
 }
 \arguments{
-\item{t}{}
+\item{t}{time points}
 
 \item{lambda}{drift parameter.}
 
@@ -18,3 +18,4 @@ mvOUproces(t, lambda = 1, sig, noise = 0)
 \description{
 Multivariate OU process
 }
+

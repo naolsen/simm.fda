@@ -25,3 +25,4 @@ Plot aligned data
 \details{
 Much improvement needs to be done on this function.
 }
+

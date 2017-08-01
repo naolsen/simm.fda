@@ -20,3 +20,4 @@ Ornstein-Uhlenbeck process
 \details{
 Note that the marginal variance (expect for noise) is assumed to be 1.
 }
+

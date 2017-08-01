@@ -18,3 +18,4 @@ Positive definite square root of matrix
 \details{
 Does not check if Y is positive definite
 }
+

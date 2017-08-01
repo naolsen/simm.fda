@@ -34,3 +34,4 @@ g(ti, param = pars[1:18], range = pars[19], smooth = pars[20], noise = 1)
 \seealso{
 \link{kovMat}
 }
+

@@ -18,3 +18,4 @@ Zi(t, dwarp, basis_fct, c)
 \description{
 Computes the Jacobian of a warped B-spline function.
 }
+

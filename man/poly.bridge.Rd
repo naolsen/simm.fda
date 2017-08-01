@@ -24,3 +24,4 @@ or something like it to ensure the right structure.
 \seealso{
 timefunction.bridge
 }
+

@@ -21,3 +21,4 @@ Matern covariance with noise
 t <- seq(0,1 , 0.01)
 Maternk(t, c(0.1, 2, 1))
 }
+

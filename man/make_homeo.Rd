@@ -17,3 +17,4 @@ make_homeo(w, tw, epsilon = 0.1)
 Projects a set of warping parameters onto the set of values that produce homeomorphic warping functions using constrOptim.
 }
 \keyword{warping}
+

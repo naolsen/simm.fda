@@ -31,3 +31,4 @@ MatInterpolate(A1, A2)
 \seealso{
 kovMat
 }
+

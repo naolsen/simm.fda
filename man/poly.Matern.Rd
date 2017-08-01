@@ -37,3 +37,4 @@ kovMat(ti, list(a1, a2), c(0,1), f, params = c(0.5, 2, 1, 1), noise = 0.1)
 \seealso{
 \link{timefunction.bridge}
 }
+

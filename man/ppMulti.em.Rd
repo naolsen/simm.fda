@@ -6,9 +6,11 @@
 \usage{
 ppMulti.em(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
   iter = c(5, 5), parallel = list(n_cores = 1, parallel_likelihood = FALSE),
-  amp_cov_par = NULL, paramMax = rep(T, length(amp_cov_par)), w.c.p = T,
-  like.alt = F, like_optim_control = list(), pr = T, design = NULL,
-  win = T, inner_control = list(), save_temp = NULL, w0 = NULL)
+  use.nlm = c(FALSE, FALSE), amp_cov_par = NULL, paramMax = rep(T,
+  length(amp_cov_par)), warp_opt = T, like.alt = F,
+  like_optim_control = list(), pr = T, design = NULL,
+  inner_parallel = T, inner_control = list(), save_temp = NULL,
+  w0 = NULL)
 }
 \arguments{
 \item{y}{}
@@ -31,8 +33,6 @@ ppMulti.em(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
 
 \item{paramMax}{}
 
-\item{w.c.p}{}
-
 \item{like.alt}{}
 
 \item{like_optim_control}{}
@@ -41,13 +41,13 @@ ppMulti.em(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
 
 \item{design}{May not be null}
 
-\item{win}{}
-
 \item{inner_control}{}
 
 \item{save_temp}{}
 
 \item{w0}{}
+
+\item{win}{}
 }
 \description{
 This is like ppMulti, but uses one step of the EM algorithm to update spline coefficients in the linearized model.
@@ -61,3 +61,4 @@ Requires \code{spam} package, used for faster calculations for sparse matrices.
 \seealso{
 \link{ppMulti}
 }
+

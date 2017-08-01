@@ -29,3 +29,4 @@ Value of posterior likelihood
 \description{
 Calculates the posterior likelihood for a single curve.
 }
+

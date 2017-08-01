@@ -34,3 +34,4 @@ likelihood(param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig = F,
 \description{
 Linearised likelihood function
 }
+

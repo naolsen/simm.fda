@@ -48,9 +48,11 @@ May be overwritten by supplying control parameters.}
 
 \item{inner_parallel}{Should the inner optimization be done parallelly?}
 
-\item{save_temp}{Save estimates after each outer iteration? FALSE, NULL or the file path.}
+\item{save_temp}{Save estimates after each outer iteration? NULL or the file path.}
 
-\item{functional:}{Optional and experimnetal parameter that allows the user to use the experimental Functionality package. Value should be a functional call that takes no arguments and initializes the functional object.}
+\item{functional:}{Optional and experimnetal parameter that allows the user to use the experimental Functionality package. 
+Value should be a functional call with one optional argument(ownDeriv = ) that initializes the functional object.
+If ownDeriv = TRUE the native derivative of the functional object is used, otherwise finite differences are used.}
 }
 \value{
 A list of estimates
@@ -78,6 +80,7 @@ TBD: descriptions of these.
 
 Regarding parallelization: The user must initiate and control parallelization objects by herself. 
 simm.fda just calls \code{foreach} and does not provide any tools for handling parallelization objects (this is a deliberate design strategy).
+Note that parallelization does not work in every situation and may depend on operative system among other things.
 }
 \examples{
 \\link{example}
@@ -121,3 +124,4 @@ mcd.res <-ppMulti(MCD.data, MCD.time, bf, wf, amp_cov = wrapper, warp_cov, amp_c
 \seealso{
 Important details can be found in simm-fda-short-desc.pdf
 }
+

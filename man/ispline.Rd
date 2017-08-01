@@ -20,3 +20,4 @@ Method for generating a 'basis function' function
 Method is a corrected version of the increasing spline basis code in the \code{SVMMaj} package.
 }
 \keyword{spline}
+

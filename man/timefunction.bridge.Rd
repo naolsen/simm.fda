@@ -34,3 +34,4 @@ outer(ti , ti, f, param = c(1, 0, 0.7))
 
 
 }
+

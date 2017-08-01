@@ -24,4 +24,3 @@ For combining shift with another type, use w.shift
 \link{w.shift}
 }
 \keyword{warping}
-

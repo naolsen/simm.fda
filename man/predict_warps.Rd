@@ -37,4 +37,3 @@ predict_warps(res$w, wf, plot = T, type="l", main = "Predicted warp functions")
 }
 
 }
-

@@ -30,4 +30,3 @@ The machinery for handling dynamical covariance structure
 \references{
 See pdf simm.fda for introduction and of details of dynamical covariance structure
 }
-

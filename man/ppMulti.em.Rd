@@ -61,4 +61,3 @@ Requires \code{spam} package, used for faster calculations for sparse matrices.
 \seealso{
 \link{ppMulti}
 }
-

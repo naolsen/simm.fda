@@ -12,4 +12,3 @@ shift_covariance(default.value)
 \description{
 Simple one-parameter covariance for pure shift
 }
-

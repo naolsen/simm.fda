@@ -41,4 +41,3 @@ Spline weights
 splw is used when no design is supplied.
 splw.d is used when a desigen is supplied.
 }
-

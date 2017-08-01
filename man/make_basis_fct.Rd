@@ -5,7 +5,7 @@
 \title{Generate basis function}
 \usage{
 make_basis_fct(kts = NULL, df = NULL, type = "B-spline",
-  intercept = FALSE, control = list())
+  intercept = TRUE, control = list(), ...)
 }
 \arguments{
 \item{kts}{a sequence of increasing points specifying the placement of the knots.}
@@ -13,9 +13,9 @@ make_basis_fct(kts = NULL, df = NULL, type = "B-spline",
 \item{df}{degrees of freedom of the spline basis. Knots are chosen equidistantly.}
 
 \item{type}{the type of basis function you want. Currently supported choices are \code{'B-spline'},
-\code{'increasing'} and \code{'constant'}. 'intercept' is equivalent to 'constant'. See details for more information.}
+\code{'increasing'}, \code{'Fourier'} and \code{'constant'}. 'intercept' is equivalent to 'constant'. See details for more information.}
 
-\item{intercept}{logical. Should the basis include an intercept?}
+\item{intercept}{logical. Should the basis include an intercept? Only used for types 'B-spline' and 'increasing'; all other types include intercept.}
 
 \item{control}{list of control parameters. Most importantly is \code{boundary} which
 contains boundary points for a B-spline basis. See details for more options.}
@@ -35,6 +35,8 @@ The control argument takes a list with the following entries
   only positive weights are allowed}
   \item{\code{sparse}}{logical. Should sparse matrices be used?}
 }
+
+type 'Fourier' calls make_fourier_basis with make_fourier_basis(kts, df %/% 2) and returns an error if 'df' isn't an odd number.
 }
 \examples{
 # Basis function knots
@@ -83,5 +85,7 @@ lines(t, A \%*\% weights, col = 'red', lwd = 2)
 pos_weights <- spline_weights(y, t, basis_fct = basis_fct_inc)
 lines(t, A_inc \%*\% pos_weights, col = 'blue', lwd = 2)
 }
+\seealso{
+\link{make_fourier_basis}
+}
 \keyword{spline}
-

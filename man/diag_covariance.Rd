@@ -20,4 +20,3 @@ amp_cov <- diag_covariance
 amp_cov_par <- c(1,1,1)
 ppMulti(y,t, etc...)
 }
-

@@ -26,4 +26,3 @@ noise and sig should fit in dimension
 \examples{
 
 }
-

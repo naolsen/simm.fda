@@ -25,4 +25,3 @@ Method for generating a 'basis function' function
 \link{make_fourier_basis}
 }
 \keyword{spline}
-

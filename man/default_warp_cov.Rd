@@ -12,4 +12,3 @@ default_warp_cov(default.value)
 \description{
 This is called default covariance function as this is typically used
 }
-

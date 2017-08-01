@@ -47,4 +47,3 @@ pavpop_returner_zogr(y, t, basis_fct, warp_fct, amp_cov = NULL,
 \description{
 Returns linearization stuff
 }
-

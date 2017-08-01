@@ -124,4 +124,3 @@ mcd.res <-ppMulti(MCD.data, MCD.time, bf, wf, amp_cov = wrapper, warp_cov, amp_c
 \seealso{
 Important details can be found in simm-fda-short-desc.pdf
 }
-

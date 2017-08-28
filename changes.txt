@@ -16,3 +16,6 @@ I will do my best to ensure all changes are included here
 (Functional package not needed to use simm.fda, avaliable on request, will be uploaded to github soon)
 
 01-08-17: Small update. A few instances which caused errors have been corrected. Added shift_cov for pure shift functions.
+
+28-08-17: Update. Various improvements and code cleaning, in particular much has been done wrt. parallellization. ppMulti.em (that uses EM algorithm) has got a major overhaul including parallelization of EM step. 2nd-order (warp) covariance function has been added.
+

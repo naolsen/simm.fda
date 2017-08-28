@@ -2,23 +2,17 @@
 % Please edit documentation in R/kovMat.R
 \name{poly.Matern}
 \alias{poly.Matern}
-\title{Matern covariance and bridge}
+\title{Matern covariance and bridge timefunction}
 \usage{
 poly.Matern(s, t, range, smooth, koef)
 }
 \arguments{
-\item{s, t}{}
+\item{s, t}{time arguments}
 
-\item{t}{}
-
-\item{range}{}
-
-\item{smooth}{}
-
-\item{koef}{}
+\item{range, smooth, koef}{Matern parameters. See \link{Materntid}}
 }
 \description{
-Matern covariance and bridge
+Matern covariance and bridge timefunction
 }
 \details{
 This is a specific implementation for Matern covariance.

@@ -7,9 +7,7 @@
 poly.larger(tmin, tmax, coef)
 }
 \arguments{
-\item{tmin}{}
-
-\item{tmax}{}
+\item{tmin, tmax}{Max and min values}
 
 \item{coef}{Polynomial coefficients for bridge, in increasing order.}
 }

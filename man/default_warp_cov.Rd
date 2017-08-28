@@ -9,6 +9,9 @@ default_warp_cov(default.value)
 \arguments{
 \item{default.value}{Default value}
 }
+\value{
+Covariance function
+}
 \description{
 This is called default covariance function as this is typically used
 }

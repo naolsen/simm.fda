@@ -5,58 +5,67 @@
 \title{ppMulti with update steps using EM algorithm}
 \usage{
 ppMulti.em(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
-  iter = c(5, 5), parallel = list(n_cores = 1, parallel_likelihood = FALSE),
-  use.nlm = c(FALSE, FALSE), amp_cov_par = NULL, paramMax = rep(T,
-  length(amp_cov_par)), warp_opt = T, like.alt = F,
-  like_optim_control = list(), pr = T, design = NULL,
-  inner_parallel = T, inner_control = list(), save_temp = NULL,
-  w0 = NULL)
+  iter = c(5, 5), use.nlm = c(FALSE, FALSE), functional = NULL,
+  amp_cov_par = NULL, paramMax = rep(T, length(amp_cov_par)),
+  warp_opt = TRUE, parallel.lik = FALSE, like_optim_control = list(),
+  pr = TRUE, design = NULL, inner_parallel = c(TRUE, TRUE),
+  save_temp = NULL, w0 = NULL, c0 = NULL)
 }
 \arguments{
-\item{y}{}
+\item{y}{List of observations in matrix form. NAs allowed}
 
-\item{t}{}
+\item{t}{List of corresponding time points. NAs not allowed}
 
-\item{basis_fct}{}
+\item{basis_fct}{Basis function for spline}
 
-\item{warp_fct}{}
+\item{warp_fct}{Warp function}
 
-\item{amp_cov}{}
+\item{amp_cov}{Amplitude covariance. Must be on the form function(t, param)}
 
-\item{warp_cov}{}
+\item{warp_cov}{Warp covariance}
 
-\item{iter}{}
+\item{iter}{two or three dimensional integer of maximal number of outer iterations &
+maximal number of inner iterations per outer iteration and optionally maximal number of em updates (default = 1).}
 
-\item{parallel}{}
+\item{use.nlm}{Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.}
 
-\item{amp_cov_par}{}
+\item{amp_cov_par}{Starting values for amplitude covariance parameters. There are no defaults.}
 
-\item{paramMax}{}
+\item{paramMax}{Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.}
 
-\item{like.alt}{}
+\item{warp_opt}{If FALSE, warp covariance parameters are kept fixed.}
 
-\item{like_optim_control}{}
+\item{parallel.lik}{Calculate likelihoods in parallel?}
 
-\item{pr}{}
+\item{like_optim_control}{List of control options for optimization in outer loop. See details}
+
+\item{pr}{Printing option.}
 
 \item{design}{May not be null}
 
-\item{inner_control}{}
+\item{inner_parallel}{Should optimization of warps and matrices for EM algorithm be done in parallel?}
 
-\item{save_temp}{}
+\item{save_temp}{Save estimates after each outer iteration? NULL or the file path.}
 
-\item{w0}{}
-
-\item{win}{}
+\item{w0}{Starting values for warp. Should only be used if you have results from a previous run.}
+}
+\value{
+A list of estimates
 }
 \description{
-This is like ppMulti, but uses one step of the EM algorithm to update spline coefficients in the linearized model.
-Theoretically better than ppMulti, but slower and the differences should be neglible.
+This is like ppMulti, but uses steps (default one step) of the EM algorithm to update spline coefficients in the linearized model.
+More correct reults than ppMulti, but slower and differences are ususally small.
 Requires spam package
 }
 \details{
 There has been less check on this function, so I cannot guarantee that it will behave as well as ppMulti.
 Requires \code{spam} package, used for faster calculations for sparse matrices.
+Regarding parallellization of EM inner step (matrix stuff): 
+Results are combined in order they are returned by worker threads. Due to numericalities, this might imply that two runs are not sure to return completely identical results.
+Also note that parallelization doesn't always work on Windows. (Use Linux if possible)
+}
+\examples{
+See \\link{ppMulti}
 }
 \seealso{
 \link{ppMulti}

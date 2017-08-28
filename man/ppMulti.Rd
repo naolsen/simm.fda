@@ -7,7 +7,7 @@
 ppMulti(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
   iter = c(5, 5), w0 = NULL, use.nlm = c(FALSE, FALSE),
   functional = NULL, amp_cov_par = NULL, paramMax = rep(TRUE,
-  length(amp_cov_par)), like.alt = FALSE, warp_opt = TRUE,
+  length(amp_cov_par)), parallel.lik = FALSE, warp_opt = TRUE,
   like_optim_control = list(), pr = FALSE, design = NULL,
   inner_parallel = FALSE, save_temp = NULL)
 }
@@ -27,7 +27,7 @@ ppMulti(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
 \item{iter}{two-dimensional integer of maximal number of outer iterations &
 maximal number of inner iterations per outer iteration.}
 
-\item{w0}{Starting values for warp. Should only be used if you have results frmo a previous run.}
+\item{w0}{Starting values for warp. Should only be used if you have results from a previous run.}
 
 \item{use.nlm}{Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.}
 
@@ -36,7 +36,7 @@ maximal number of inner iterations per outer iteration.}
 \item{paramMax}{Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.
 May be overwritten by supplying control parameters.}
 
-\item{like.alt}{Do not change}
+\item{parallel.lik}{Calculate likelihoods in parallel?}
 
 \item{warp_opt}{If FALSE, warp covariance parameters are kept fixed.}
 

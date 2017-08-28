@@ -5,45 +5,43 @@
 \title{Returns linearization stuff}
 \usage{
 pavpop_returner_zogr(y, t, basis_fct, warp_fct, amp_cov = NULL,
-  warp_cov = NULL, iter = c(5, 5), parallel = list(n_cores = 1,
-  parallel_likelihood = FALSE), use_warp_gradient = FALSE,
-  amp_cov_par = NULL, w0 = NULL, pr = T, design = NULL, win = T,
-  inner_control = list())
+  warp_cov = NULL, iter = 5, use.nlm = FALSE, functional = NULL,
+  amp_cov_par = NULL, w0 = NULL, pr = T, design = NULL,
+  inner_parallel = FALSE, eval_likelihood = FALSE)
 }
 \arguments{
-\item{y}{}
+\item{y}{List of observations in matrix form. NAs allowed}
 
-\item{t}{}
+\item{t}{List of corresponding time points. NAs not allowed}
 
-\item{basis_fct}{}
+\item{basis_fct}{Basis function for spline}
 
-\item{warp_fct}{}
+\item{warp_fct}{Warp function}
 
-\item{amp_cov}{}
+\item{amp_cov}{Amplitude covariance. Must be on the form function(t, param)}
 
-\item{warp_cov}{}
+\item{warp_cov}{Warp covariance}
 
-\item{iter}{}
+\item{iter}{Number of iterations on warp optimization. 0 allowed.}
 
-\item{parallel}{}
+\item{amp_cov_par}{Values for amplitude covariance parameters.}
 
-\item{use_warp_gradient}{}
+\item{w0}{Starting values for warp. NULL is allowed.}
 
-\item{amp_cov_par}{}
+\item{pr}{Printing option}
 
-\item{w0}{}
+\item{design}{Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.}
 
-\item{pr}{}
+\item{inner_parallel}{Should the inner optimization be done parallelly?}
 
-\item{design}{}
-
-\item{win}{}
-
-\item{inner_control}{}
+\item{eval_likelihood}{Calculate linearized likelihood of final estimate? Not yet implemented.}
 }
 \value{
-
+A list of results including r and z
 }
 \description{
 Returns linearization stuff
+}
+\seealso{
+\link{ppMulti}
 }

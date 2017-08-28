@@ -23,6 +23,9 @@ Materntid(s, t, range, smooth)
 
 \item{smooth}{smoothness parameter}
 }
+\value{
+A vector. Proper use is together with \code{outer} or \code{kovMat}.
+}
 \description{
 Temporal covariance structures
 
@@ -31,4 +34,7 @@ Matern covariance structure:
 }
 \details{
 Time covariance functions should not be called directly. Either use as part of kovMat or call using outer.
+}
+\examples{
+
 }

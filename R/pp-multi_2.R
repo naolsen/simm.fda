@@ -26,11 +26,11 @@
 #' @param warp_cov Warp covariance 
 #' @param iter two-dimensional integer of maximal number of outer iterations &
 #' maximal number of inner iterations per outer iteration.
-#' @param w0 Starting values for warp. Should only be used if you have results frmo a previous run.
+#' @param w0 Starting values for warp. Should only be used if you have results from a previous run.
 #' @param amp_cov_par Starting values for amplitude covariance parameters. There are no defaults.
 #' @param paramMax Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.
 #' May be overwritten by supplying control parameters.
-#' @param like.alt Do not change
+#' @param parallel.lik Calculate likelihoods in parallel?
 #' @param warp_opt If FALSE, warp covariance parameters are kept fixed. 
 #' @param like_optim_control List of control options for optimization in outer loop. See details
 #' @param use.nlm Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.
@@ -114,7 +114,7 @@
 
 ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
                     w0 = NULL, use.nlm = c(FALSE, FALSE), functional = NULL, 
-                    amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)),  like.alt = FALSE, warp_opt = TRUE,
+                    amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)),  parallel.lik = FALSE, warp_opt = TRUE,
                     like_optim_control = list(), pr=FALSE, design = NULL, inner_parallel = FALSE, save_temp = NULL) {
 
   ## Opsætnings-ting
@@ -132,11 +132,11 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   if (is.null(save_temp)) gem.tmp <- F
   else {
     gem.tmp <- T
-    if (!is.character(save_temp)) stop("save_temp must be either False or a specified file location")
+    if (!is.character(save_temp)) stop("save_temp must be either NULL or a specified file location")
   }
 
   
-  if(like.alt) {
+  if(parallel.lik) {
     print("Skifter funktion")
     likelihood <- like.par
     if(!is.null(attr(amp_cov, "chol"))) print("Bruger smart choleski")
@@ -202,18 +202,16 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   ## Check if functionality package is used
   
   if (!is.null(functional)) {
-    require("Functional")
+    require("fctbases")
     
     bf0 <- functional()
     basis_fct <- setup.functional.basis(bf0, t[[1]][1], isTRUE(formals(functional)$ownDeriv))
     
     on.exit({ ## Close connection after use.
-      print("Closing")
-      Functional::removeMember(bf0)
+      cat("\n Closing connection. ")
+      fctbases::removeMember(bf0)
     })
     }
-  
-  
   
   
   # Build amplitude covariances and inverse covariances
@@ -262,6 +260,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       if (warp_type == 'piecewise linear') dwarp[[i]] <- as(dwarp[[i]], "dgCMatrix")
     }
   }
+  r <- Zis <- list()
   
   # Initialize best parameters
   like_best <- Inf
@@ -294,13 +293,14 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
           w_res <- list()
         
           if (inner_parallel)  w_res <- 
-              foreach(i = 1:n) %dopar% {
+              foreach(i = 1:n, Sinvi = Sinv, .noexport = c("Sinv", "S", "S.chol", "dwarp", "r", "Zis")) %dopar% {
+                if (!is.null(functional))  stop("functional && inner_parallel does not work together!")
                 if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
                 else cis[[i]] <- c 
 
                 warp_optim_method <- 'CG'
-                if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
-                else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
+                if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
+                else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
                 
                 if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
                 return(ww)
@@ -337,9 +337,9 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
     }
     
-    ## Outer loop part. 
+    ### Outer loop part. 
      
-    # Construct residual vector for given warp prediction
+    ## 1. Construct residual vector for given warp prediction
 
     Zis <- list()
     r <- y
@@ -350,25 +350,18 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
       # Compute warped time
       twarped <- t_warped[[i]] <- warp_fct(w[, i], t[[i]])
-      
       if (!is.null(warp_cov)) {
         if (warp_type == 'smooth') dwarp[[i]] <- warp_fct(w[, i], t[[i]], w_grad = TRUE)
         
-        Zis[[i]] <- matrix(Zi(twarped, dwarp[[i]], basis_fct, cis[[i]][, 1]), m[i], mw)
-        if (K > 1) for (k in 2:K) {
-          Zis[[i]] <- rbind(Zis[[i]], matrix(Zi(twarped, dwarp[[i]], basis_fct, cis[[i]][, k]), m[i], mw))
-        }
-        
+        Zis[[i]] <- multi.Zi(twarped, dwarp[[i]], basis_fct, cis[[i]], mw) ## Opdateret. multi.Zi er hurtigere.
       } else {
         Zis[[i]] <- matrix(0, m[i]*K, mw)
       }
-      
       
       ## Opdateret. Hurtigere evaluering af y - r - Zw^0
       if (nrow(w) != 1) {
         r[[i]] <- y[[i]] - as.numeric(basis_fct(twarped) %*% cis[[i]]) + as.numeric(Zis[[i]] %*% w[, i])
       }
-      
       else {
         rrr <- y[[i]]
         
@@ -377,7 +370,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         }
         r[[i]] <- rrr
       }
-      
       
     }
     
@@ -466,7 +458,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         like_optim$value <- like_optim$minimum
       }
       else {    ## optim optimization
-        like_optim <- optim(par = paras, like_fct, gr = like_gr, method = method, lower = lower0, upper = upper0, control = list(ndeps = ndeps, maxit = 20))
+        like_optim <- optim(par = paras, like_fct, gr = like_gr, method = method, lower = lower0, upper = upper0, control = list(ndeps = ndeps, maxit = maxit))
         param <- like_optim$par
       }
       

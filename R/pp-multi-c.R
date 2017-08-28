@@ -16,55 +16,62 @@
 
 #' ppMulti with update steps using EM algorithm
 #' 
-#' This is like ppMulti, but uses one step of the EM algorithm to update spline coefficients in the linearized model.
-#' Theoretically better than ppMulti, but slower and the differences should be neglible.
+#' This is like ppMulti, but uses steps (default one step) of the EM algorithm to update spline coefficients in the linearized model.
+#' More correct reults than ppMulti, but slower and differences are ususally small.
 #' Requires spam package
 #'
-#' @param y 
-#' @param t 
-#' @param basis_fct 
-#' @param warp_fct 
-#' @param amp_cov 
-#' @param warp_cov 
-#' @param iter 
-#' @param parallel 
-#' @param amp_cov_par 
-#' @param paramMax 
-#' @param like.alt 
-#' @param like_optim_control 
-#' @param pr 
+#' @param y List of observations in matrix form. NAs allowed
+#' @param t List of corresponding time points. NAs not allowed
+#' @param basis_fct Basis function for spline
+#' @param warp_fct Warp function
+#' @param amp_cov Amplitude covariance. Must be on the form function(t, param)
+#' @param warp_cov Warp covariance 
+#' @param iter two or three dimensional integer of maximal number of outer iterations &
+#' maximal number of inner iterations per outer iteration and optionally maximal number of em updates (default = 1).
+#' @param amp_cov_par Starting values for amplitude covariance parameters. There are no defaults.
+#' @param warp_opt If FALSE, warp covariance parameters are kept fixed. 
+#' @param paramMax Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.
+#' @param parallel.lik Calculate likelihoods in parallel?
+#' @param like_optim_control List of control options for optimization in outer loop. See details
+#' @param use.nlm Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.
+#' @param pr Printing option.
 #' @param design May not be null
-#' @param win 
-#' @param inner_control 
-#' @param save_temp 
-#' @param w0 
+#' @param inner_parallel Should optimization of warps and matrices for EM algorithm be done in parallel?
+#' @param save_temp Save estimates after each outer iteration? NULL or the file path.
+#' @param w0 Starting values for warp. Should only be used if you have results from a previous run.
 #' 
 #' @details There has been less check on this function, so I cannot guarantee that it will behave as well as ppMulti.
 #' Requires \code{spam} package, used for faster calculations for sparse matrices.
+#' Regarding parallellization of EM inner step (matrix stuff): 
+#' Results are combined in order they are returned by worker threads. Due to numericalities, this might imply that two runs are not sure to return completely identical results.
+#' Also note that parallelization doesn't always work on Windows. (Use Linux if possible)
 #'
-#' @return
+#' @return A list of estimates
 #' @export
 #' @seealso \link{ppMulti}
 #'
-#' @examples
+#' @examples See \link{ppMulti}
 ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
-                    parallel = list(n_cores = 1, parallel_likelihood = FALSE), use.nlm = c(FALSE, FALSE),
-                    amp_cov_par=NULL, paramMax = rep(T,length(amp_cov_par)),  warp_opt = T, like.alt = F,
-                    like_optim_control = list(), pr=T, design = NULL, inner_parallel =T, inner_control = list(),
-                    save_temp = NULL, w0 = NULL) {
+                    use.nlm = c(FALSE, FALSE), functional = NULL, 
+                    amp_cov_par=NULL, paramMax = rep(T,length(amp_cov_par)),  warp_opt = TRUE, parallel.lik = FALSE,
+                    like_optim_control = list(), pr=TRUE, design = NULL, inner_parallel = c(TRUE, TRUE),
+                    save_temp = NULL, w0 = NULL, c0 = NULL) {
   
   require("spam")
   
   nouter <- iter[1] + 1
   if (is.null(amp_cov) & is.null(warp_cov)) nouter <- 1
   ninner <- iter[2]
+  em.iter <- if(is.na(iter[3])) 1 else iter[3]
+  
   halt_iteration <- FALSE
   # Set size parameters
   n <- length(y)
   m <- sapply(y, nrow)
   K <- ncol(y[[1]])
-  if (ncol(y[[1]]) == 1) stop("Use pavpop for one-dimensional functional objects")
+  if (ncol(y[[1]]) == 1) warning("Use pavpop for one-dimensional functional objects")
   homeomorphisms <- 'soft'
+  
   if (is.null(save_temp)) gem.tmp <- F
   else {
     gem.tmp <- T
@@ -72,12 +79,10 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
   }
   if(is.null(design)) stop("Not implemented without designs")
   
-  cis <- list() ## For designs
-  
   ## S??rligt for denne
-  if(like.alt) {
-    print("Skifter funktion")
-    likelihood <- like9
+  if(parallel.lik) {
+    print("Using parallelized likelihood")
+    likelihood <- like.par
     if(!is.null(attr(amp_cov, "chol"))) print("Bruger smart choleski")
   }
   
@@ -87,7 +92,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
   mw <- attr(warp_fct, 'mw')
   if (all(is.na(tw))) tw <- rep(tw, mw)
   warp_type <- attr(warp_fct, 'type')
-  if (warp_type != 'piecewise linear' & warp_type != 'smooth') homeomorphisms <- 'no'
+  if (warp_type != 'smooth') homeomorphisms <- 'no'
   
   # Unknown parameters
   warp_cov_par <- eval(attr(warp_cov, 'param'))
@@ -106,15 +111,13 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
   if (length(t) != n) stop("y and t must have same length.")
   if (!all(sapply(t, length) == m)) stop("Observations in y and t must have same length.")
   
-  yvek <- list()
-  tvek <- list()
   # Remove missing values
   for (i in 1:n) {
     missing_indices <- is.na(y[[i]][,1])
     y[[i]] <- y[[i]][!missing_indices,]
     t[[i]] <- t[[i]][!missing_indices]
-    yvek[[i]] <- unlist(y[[i]])
-    tvek[[i]] <- rep(t[[i]], K)
+    #yvek[[i]] <- unlist(y[[i]])
+    #tvek[[i]] <- rep(t[[i]], K)
   }
   # Stored warped time
   t_warped <- t
@@ -135,18 +138,20 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
   inv_amp_cov <- attr(amp_cov, 'inv_cov_fct')
   inv_amp <- !is.null(attr(amp_cov, 'inv_cov_fct'))
   
-  S <- Sinv <- list()
+  S <- Sinv <- S.chol <- list()
   for (i in 1:n) {
     # Check if an amplitude covariance is defined
     
     S[[i]] <- amp_cov(t[[i]], amp_cov_par)
-    #print(dim(S[[i]]))
+    S.chol[[i]] <- chol(S[[i]])
+    
     if (inv_amp) {
       Sinv[[i]] <- inv_amp_cov(t[[i]], amp_cov_par)
     } else {
       Sinv[[i]] <- chol2inv(chol(S[[i]]))
     }
   }
+  ## At gøre: Kombinër S.chol med inv_amp om muligt
   
   # Build warp covariance and inverse
   if (!is.null(warp_cov)) {
@@ -156,13 +161,17 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
     C <- Cinv <- matrix(0, mw, mw)
   }
   
+
   # First estimate of  spline weights
   
+  cis <- list() ## For designs  
   if (!is.null(design)) {
     c <- (splw.d(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design))
   } else {
     c <- splw(y, t, warp_fct, w, Sinv, basis_fct, K = K)
   }
+  if (is.null(design)) cis[[i]] <- c
+  else cis[[i]] <- c %*%  (design[[i]] %x% diag(K))
   
   # Construct warp derivative
   dwarp <- list()
@@ -172,6 +181,10 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       if (warp_type == 'piecewise linear') dwarp[[i]] <- as(dwarp[[i]], "dgCMatrix")
     }
   }
+  
+  # r and Z lists
+  Zis <- list()
+  r <- y
   
   # Initialize best parameters
   like_best <- Inf
@@ -186,215 +199,149 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
     # Outer loop
     if (iouter != nouter) cat(iouter, '\t:\t')
     
-    if (is.null(inner_control$warp_change_crit)) inner_control$warp_change_crit <- T
-
     
     wis <- list()
     
-    for (iinner in 1:ninner) { if (T) { ## Kriterium kan tilf??jes
+    for (iinner in 1:ninner) { ## Kriterium kan tilf??jes
       # Inner loop
       if (iouter != nouter | nouter == 1) cat(iinner, '\t')
       
       
-      
       # Predict warping parameters for all functional samples
       warp_change <- c(0, 0)
-      if (homeomorphisms == 'hard') {
-        #TODO: constrainOptim
-        stop("Hard homeomorphic constrained optimization for warps is not implemented.")
-      } else {
-        w_res <- list()
+      w_res <- list()
 
-        if (inner_parallel)  w_res <- ## Parallell prediction of warping parameters
-          foreach(i = 1:n) %dopar% {
-            if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
-            else cis[[i]] <- c 
+      
+      if (inner_parallel[1])  w_res <- ## Parallell prediction of warping parameters
+          foreach(i = 1:n, Sinvi = Sinv, yi = y, tid = t, .noexport = c("Sinv", "S", "S.chol", "y", "t", "r", "Zis", "cis", "dwarp")) %dopar% {
+            #if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
+            #else cis[[i]] <- c 
+            ci <- if (!is.null(design)) c %*%  (design[[i]] %x% diag(K)) else c
             
             warp_optim_method <- 'CG'
-            if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
-            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = NULL, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
+            if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = tid, y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
+            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = NULL, method = warp_optim_method, warp_fct = warp_fct, t = tid, y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
             
             if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
             return(ww)
           }
-        else for ( i in 1:n) { ## Prediction as a for loop
+      else for ( i in 1:n) { ## Prediction as a for loop
           
-          if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
-          else cis[[i]] <- c 
+          #if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
+          #else cis[[i]] <- c 
+          ci <- if (!is.null(design)) c %*%  (design[[i]] %x% diag(K)) else c
+          
           warp_optim_method <- 'Nelder-Mead'
-          if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
-          else  ww <- optim(par = w[, i], fn = posterior.lik, gr = NULL, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
+          if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = ci, Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
+          else  ww <- optim(par = w[, i], fn = posterior.lik, gr = NULL, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = ci, Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
           
           if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
           w_res[[i]] <- ww
-        }
-        
-        
-        for (i in 1:n) {
-          warp_change[1] <- warp_change[1] + sum((w[, i] - w_res[[i]])^2)
-          warp_change[2] <- max(warp_change[2], abs(w[, i] -  w_res[[i]]))
-          w[, i] <- w_res[[i]]
-        }
-        
+          
+        eval(RZ.ting) 
       }
       
-      Zis <- list()
-      r <- y
+      ## Calculate R and Z   
       
+      if (inner_parallel[1]) for (i in 1:n)  eval(RZ.ting) 
       
-      ## Her er det lidt mindre klart
-      for (i in 1:n) {
-        t_warped[[i]] <- warp_fct(w[, i], t[[i]])
-        if (is.null(design)) cis[[i]] <- c
-        else cis[[i]] <- c %*%  (design[[i]] %x% diag(K))
-        twarped <- t_warped[[i]]
-        if (!is.null(warp_cov)) {
-          if (warp_type == 'smooth') dwarp[[i]] <- warp_fct(w[, i], t[[i]], w_grad = TRUE)
-          Zis[[i]] <- matrix(Zi(twarped, dwarp[[i]], basis_fct, cis[[i]][, 1]), m[i], mw)
-          for (k in 2:K) {
-            Zis[[i]] <- rbind(Zis[[i]], matrix(Zi(twarped, dwarp[[i]], basis_fct, cis[[i]][, k]), m[i], mw))
-          }
-          
-        } else {
-          Zis[[i]] <- Matrix(0, m[i]*K, mw)
-        }
+      ## Em algorithm stuff
+      for (i.em in 1:em.iter) {
+      
+      if (i.em != em.iter) 
+        for (i in 1:n) eval(RZ.ting) 
         
-          
-          ## Opdateret. Hurtigere evaluering af y - r - Zw^0
-          if (nrow(w) != 1) {
-            z0 <-   as.numeric(bf(twarped) %*% cis[[i]]) - as.numeric(Zis[[i]] %*% w[, i])
-            r[[i]] <- y[[i]] - z0        
-          }
-          
-          else {
-            rrr <- y[[i]]
-            
-            for (k in 1:K) {
-              rrr[,k] <- rrr[,k] - bf(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
-            }
-            r[[i]] <- rrr
-          }
-        
-      }
       # Update spline weights
 
       no.c <- length(c)
-      Amat <-  matrix(0, no.c, no.c)
-      
-      bvek <- rep(0, no.c)
       sigma <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=T)
-      if (T) likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, pr = T)
       west <- w
       
-      # EM algorithm step
-      val0 <-c(0,0)
-      for (i in 1:n) {
-       if (pr) cat(" ", i)
+      # EM step
+      cat(" EM algorithm! ")
+      
+      
+      EM.expr <- expression({
         
+        Amat <- matrix(0, no.c, no.c)
         mi <- m[i]*K
-         Sinvi <- Sinv[[i]]
-        rr <- as.numeric(r[[i]])
-        ZZ <- Zis[[i]]
         
-         tZZSz <- t(ZZ) %*% Sinvi
-         Sz <- tZZSz %*% ZZ
-        west[,i] <- solve(Cinv +  Sz , tZZSz %*% rr )
-       A <- ZZ %*% solve(Cinv +  Sz ,   tZZSz )
-
-          wvar <- sigma^2 * (C - C %*% (Sz - tZZSz %*%  A %*% ZZ) %*% C)
-          
-          if (pr) print(wvar)
-          if(pr) print (c(west[,i], w[,i]))
+        #Scholi <- S.chol[[i]]
+        rr <- as.numeric(rr)
+        #ZZ <- Zis[[i]]
         
-          warpt <- t_warped[[i]]
-        Ri <- list()
+        Sk <- backsolve(Scholi, ZZ, transpose = TRUE)
+        Sz <-  t(Sk) %*% Sk
+        
+        west[,i] <- solve(Cinv +  Sz, t(Sk) %*% backsolve(Scholi, rr, transpose = TRUE))
+        wvar <- sigma^2 * (C - C %*% (Sz - Sz %*% solve(Cinv +  Sz ,   Sz)) %*% C)
+        
+        warpt <- t_warped[[i]]
+        #Ri <- list()
         R <- as.spam(t(design[[i]]) %x% diag(K)) %x% as.spam(bf(warpt))
         
-        wd <- dwarp[[i]]
+        #wd <- dwarp[[i]]
         bd <-  bf( warpt, T)
+        Rischol <- list()
         
         for (k in 1:mw) {
-          Ri[[k]] <- as.spam(t(design[[i]]) %x% diag(K)) %x% as.spam(wd[,k] *  bd )
-          R <- R +  Ri[[k]] * (west[k,i] - w[k,i])
+          Rk <- as.spam(t(design[[i]]) %x% diag(K)) %x% as.spam(wd[,k] *  bd )
+          R <- R + Rk * (west[k,i] - w[k,i])
+          
+          Rischol[[k]] <- backsolve(Scholi, Rk, transpose = TRUE)
         }
         
-        for (l1 in 1:mw) {
-          #Rs <- as.spam(t(Ri[,,l1])) %*% Sinvi
-          Rs <- t(Ri[[l1]]) %*% Sinvi
-          tr00 <- as.spam(matrix(0, mi , no.c))
-          for (l2 in 1:mw) {
-            tr00 <- tr00 + wvar[l1, l2] *  Ri[[l2]]# Ri[,,l2]
-          
+        if (mw > 1) {
+          for (l1 in 1:(mw-1)) {
+            tr00 <- as.spam( (0.5*wvar[l1, l1]) *  Rischol[[l1]])
+            for (l2 in (l1+1):mw) tr00 <- tr00 + wvar[l1, l2] *  Rischol[[l2]]
+            Rs <- t(Rischol[[l1]]) %*% tr00
+            Amat <- Amat + (Rs + t(Rs))
           }
-          
-          Amat <- Amat +  Rs %*% tr00
-        }
-
+          Amat <- Amat + wvar[mw,mw]*  (t(Rischol[[mw]]) %*%  Rischol[[mw]])
+        } else stop("This method not implemented for mw < 2")
         
-              ## R vil ikke anerkende det som symmetriske matricer
-        bas <-  t(R) %*% Sinvi
-        Amat <- Amat + bas %*% R 
-        bvek <- bvek + bas %*% as.numeric(y[[i]])      
-      }
+        SR <- backsolve(Scholi, R, transpose = TRUE)
+        Amat <- Amat + t(SR) %*% SR
+        bvek <- t(SR) %*% backsolve(Scholi, as.numeric(yi), transpose = TRUE)
+        cbind(Amat, bvek)
+      })
       
-      Amat <- as.spam(Amat)
-      Amat <- 0.5 * (Amat + t(Amat) )   
-         # print(mean(abs(Amatuden-Amat)))
-      c.ny <- solve(Amat, bvek)
+      ## Do the EM stuff
+      
+      if (inner_parallel[2]) Amatt <- 
+        foreach (i = 1:n, rr = r, ZZ = Zis, Scholi = S.chol, wd = dwarp, yi= y, .combine = '+', 
+                 .noexport = c("S", "Sinv", "Zis", "r", "Schol", "y", "t"), .inorder = FALSE) %dopar% eval(EM.expr)
+      else { ## for-loop
+        Amatt <- matrix(0, no.c, no.c + 1)
+        for (i in 1:n) {
+          rr <- as.numeric(r[[i]])
+          ZZ <- Zis[[i]]
+          Scholi <- S.chol[[i]]
+          wd <- dwarp[[i]]
+          yi <- y[[i]]
+          Amatt <- Amatt + eval(EM.expr)
+        }
+      }
+      c.ny <- solve(as.spam(Amatt[, 1:no.c]), Amatt[, no.c + 1])
+      
+     #  c.ny <- solve(Amat, bvek) Ikke ekspressivt
      # print(c.ny)
       if (pr) print(matrix(c.ny, nr = nrow(c)))
       c <- matrix(c.ny, nr = nrow(c), nc = ncol(c))
-    }    
+      }
+      
+      for (i in 1:n) {
+        warp_change[1] <- warp_change[1] + sum((w[, i] - w_res[[i]])^2)
+        warp_change[2] <- max(warp_change[1], abs(w[, i] -  w_res[[i]]))
+        w[, i] <- w_res[[i]]
+      }
       if (warp_change[2] < 1e-2 / sqrt(mw)) break #TODO: Consider other criteria
 
     }
-  
-    
+    for (i in 1:n)  eval(RZ.ting) 
     
     # Likelihood estimation of parameters (outer loop)
-    
-    # Construct residual vector for given warp prediction
-    Zis <- list()
-    r <- y
-    
-    ## Her er det lidt mindre klart
-    for (i in 1:n) {
-      if (is.null(design)) cis[[i]] <- c
-      else cis[[i]] <- c %*%  (design[[i]] %x% diag(K))
-      
-      # Compute warped time
-      twarped <- t_warped[[i]] <- warp_fct(w[, i], t[[i]])
-      
-      if (!is.null(warp_cov)) {
-        if (warp_type == 'smooth') dwarp[[i]] <- warp_fct(w[, i], t[[i]], w_grad = TRUE)
-        Zis[[i]] <- matrix(Zi(twarped, dwarp[[i]], basis_fct, cis[[i]][, 1]), m[i], mw)
-        if (K > 1) for (k in 2:K) {
-          Zis[[i]] <- rbind(Zis[[i]], matrix(Zi(twarped, dwarp[[i]], basis_fct, cis[[i]][, k]), m[i], mw))
-        }
-        
-      } else {
-        Zis[[i]] <- Matrix(0, m[i]*K, mw)
-      }
-      
-      ## Opdateret. Hurtigere evaluering af y - r - Zw^0
-      if (nrow(w) != 1) {
-        
-        r[[i]] <- y[[i]] - as.numeric(basis_fct(twarped) %*% cis[[i]]) + as.numeric(Zis[[i]] %*% w[, i])
-      }
-      
-      else {
-        rrr <- y[[i]]
-        
-        for (k in 1:K) {
-          rrr[,k] <- rrr[,k] - basis_fct(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
-        }
-        r[[i]] <- rrr
-      }
-    }
-    
-    ## If warps are strange, try to re-run inner loop and compare. warp_cov has to be.
-    
-    
     
     # Check wheter the final outer loop has been reached
     if (iouter != nouter) {
@@ -403,7 +350,8 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       # Likelihood function
       par1 <- which(paramMax)
       parw <- n_par_amp + 1:n_par_warp
-      #print(par1)
+      
+      like_eps <- if (is.null(like_optim_control$eps)) 1e-5 else like_optim_control$eps
       randomCycle <- if (is.null(like_optim_control$randomCycle)) -1 else like_optim_control$randomCycle
       optim.rule <- if (is.null(like_optim_control$optim.rule)) NULL else like_optim_control$optim.rule
       if (!is.null(optim.rule) && is.null(attr(optim.rule, "min"))) attr(optim.rule, "min") <- 0
@@ -432,43 +380,26 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         }
         likelihood(par, param.w, r = r, Zis = Zis, amp_cov = amp_cov, warp_cov = warp_cov, t = t, tw = tw, pr = pr)
         
-      }      else like_fct <- function(pars) {
-        par <- amp_cov_par
-        par[par1]<- pars
-        like.S(par, r = r, amp_cov = amp_cov, t = t, pr = pr)
+      } else like_fct <- function(pars) {
+          par <- amp_cov_par
+          par[par1]<- pars
+          like.S(par, r = r, amp_cov = amp_cov, t = t, pr = pr)
       }
       
       # Likelihood gradient
-      like_gr <- NULL
-      if (parallel$parallel_likelihood) {
-        # Construct parallel gradient
         like_gr <- function(par) {
-          epsilon <- 1e-5
-          rep(1:length(par), each = 2)
-          res <- foreach(ip = 1:length(par), .combine = 'c') %:%
-            foreach(sign = c(1, -1), .combine= '-') %dopar% {
-              h <- rep(0, length(par))
-              h[ip] <- sign * epsilon
-              return(like_fct(par + h) / (2 * epsilon))
-            }
-          return(res)
-        }
-      } else {
-        # Construct parallel gradient
-        like_gr <- function(par) {
-          epsilon <- 1e-5
+          epsilon <- like_eps
           rep(1:length(par), each = 2)
           res <- rep(0, length(par))
           for (ip in  1:length(par)) {
             for (sign in c(1, -1)) {
               h <- rep(0, length(par))
-              h[ip] <- sign * epsilon
-              res[ip] <- res[ip] + sign * like_fct(par + h) / (2 * epsilon)
+              h[ip] <- sign * like_eps
+              res[ip] <- res[ip] + sign * like_fct(par + h) / (2 * like_eps)
             }
           }
           return(res)
         }
-      }
       
       # Estimate parameters using locally linearized likelihood
       lower  <- if (is.null(like_optim_control$lower)) rep(1e-3, n_par_amp + n_par_warp) else like_optim_control$lower
@@ -481,16 +412,26 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       lower0  <- lower[c(1:n_par_warp , n_par_warp + par1)]
       
       # Optim??r!
-      cat("Optimization (outer loop)" , parw, "\n")
+      cat("Optimization (outer loop) \n")
       paras <-  c(warp_cov_par, amp_cov_par[par1])
       #print(paras)
       
-      like_optim <- optim(par = paras, like_fct, gr = like_gr, method = method, lower = lower0, upper = upper0, control = list(ndeps = ndeps, maxit = 20))
-      param <- like_optim$par
-      print(param)
+      if (use.nlm[1]) {  ## nlm optimization
+        steptol <- if (is.null(like_optim_control$steptol)) 1e-6 else like_optim_control$steptol
+        like_optim <- nlm.bound.xx(fct = like_fct , p = paras, lower = lower0, upper = upper0, init = TRUE, symmetric = TRUE, iterlim = maxit)
+        param <- like_optim$estimate
+        like_optim$value <- like_optim$minimum
+      }
+      else {    ## optim optimization
+        like_optim <- optim(par = paras, like_fct, gr = like_gr, method = method, lower = lower0, upper = upper0, control = list(ndeps = ndeps, maxit = maxit))
+        param <- like_optim$par
+      }
       
-      if (!is.null(warp_cov)) warp_cov_par <- param[1:n_par_warp]
-      if (!is.null(amp_cov)) amp_cov_par[par1] <- param[- (1:n_par_warp)]
+      
+      cat("Parameter values: ")
+      
+      if (!is.null(warp_cov) && warp_opt) warp_cov_par <- param[p_warp]
+      if (!is.null(amp_cov)) amp_cov_par[par1] <- if (length(p_warp) > 0) param[- (p_warp)] else param
       
       if (like_optim$value <= like_best) {
         # Save parameters
@@ -562,49 +503,37 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
 
 #' Returns linearization stuff
 #'
-#' @param y 
-#' @param t 
-#' @param basis_fct 
-#' @param warp_fct 
-#' @param amp_cov 
-#' @param warp_cov 
-#' @param iter 
-#' @param parallel 
-#' @param use_warp_gradient 
-#' @param amp_cov_par 
-#' @param w0 
-#' @param pr 
-#' @param design 
-#' @param win 
-#' @param inner_control 
+#' @param y List of observations in matrix form. NAs allowed
+#' @param t List of corresponding time points. NAs not allowed
+#' @param basis_fct Basis function for spline
+#' @param warp_fct Warp function
+#' @param amp_cov Amplitude covariance. Must be on the form function(t, param)
+#' @param warp_cov Warp covariance 
+#' @param iter Number of iterations on warp optimization. 0 allowed.
+#' @param amp_cov_par Values for amplitude covariance parameters. 
+#' @param w0 Starting values for warp. NULL is allowed.
+#' @param pr Printing option
+#' @param design Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.
+#' @param inner_parallel Should the inner optimization be done parallelly?
+#' @param eval_likelihood Calculate linearized likelihood of final estimate? Not yet implemented.
 #'
-#' @return
+#' @export
+#' @return A list of results including r and z
 #'
-#' @examples
-pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
-                       parallel = list(n_cores = 1, parallel_likelihood = FALSE), use_warp_gradient = FALSE,
-                       amp_cov_par=NULL,  w0 = NULL,  pr=T, design = NULL, win =T, inner_control = list()) {
-  nouter <- iter[1] + 1
+#' @seealso \link{ppMulti}
+pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = 5,
+                       use.nlm = FALSE, functional = NULL, amp_cov_par=NULL,  w0 = NULL,  
+                       pr=T, design = NULL, inner_parallel = FALSE, eval_likelihood = FALSE) {
   if (is.null(amp_cov) & is.null(warp_cov)) nouter <- 1
-  ninner <- iter[2]
+  ninner <- iter[1]
   halt_iteration <- FALSE
   # Set size parameters
   n <- length(y)
   m <- sapply(y, nrow)
   K <- ncol(y[[1]])
-  if (ncol(y[[1]]) == 1) stop("Use pavpop for one-dimensional functional objects")
+  
   homeomorphisms <- 'soft'
 
-  
-  
-  cis <- list() ## For designs
-  ## problemer med parallelitet
-  if (win) {
-    tryFejl <- FALSE
-  } else tryFejl <- TRUE
-  ## S??rligt for denne
-  
-  
   
   
   # Warp parameters
@@ -613,11 +542,10 @@ pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp
   if (all(is.na(tw))) tw <- rep(tw, mw)
   warp_type <- attr(warp_fct, 'type')
   if (warp_type != 'piecewise linear' & warp_type != 'smooth') homeomorphisms <- 'no'
+  if (warp_type == 'identity') warp_cov <- NULL
   
   # Unknown parameters
   warp_cov_par <- eval(attr(warp_cov, 'param'))
-  n_par_warp <- length(warp_cov_par)
-  n_par_amp <- length(amp_cov_par)
   
   ## Check if no. of ( lower) parameter limits correspond to ...
   
@@ -636,12 +564,35 @@ pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp
     t[[i]] <- t[[i]][!missing_indices]
     yvek[[i]] <- unlist(y[[i]])
     tvek[[i]] <- rep(t[[i]], K)
-  }
-  # Stored warped time
-  t_warped <- t
-  
+  }  
   # Update m with cleaned data
   m <- sapply(y, nrow)
+  
+  cis <- list() ## For designs
+  # Design part. If matrix, convert to list
+  if (is.matrix(design)) {
+    des <- design
+    design <- list()
+    for (i in 1:n) design[[i]] <- des[i,]
+  }
+  if (!is.null(design) && length(design) != n) stop("design must have same length or number of rows as the length of y.")
+  
+  ## Check if functionality package is used
+  
+  if (!is.null(functional)) {
+    require("fctbases")
+    
+    bf0 <- functional()
+    basis_fct <- setup.functional.basis(bf0, t[[1]][1], isTRUE(formals(functional)$ownDeriv))
+    
+    on.exit({ ## Close connection after use.
+      print("Closing")
+      fctbases::removeMember(bf0)
+    })
+  }
+  
+  # Stored warped time
+  t_warped <- t
   
   
   # Initialize warp parameters
@@ -693,7 +644,8 @@ pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp
   }
   
   # Initialize best parameters
-  like_best <- Inf
+  like_best <- NULL
+  sigma <- NULL
   w_best <- w
   c_best <- c
   amp_cov_par_best <- amp_cov_par
@@ -704,139 +656,84 @@ pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp
     
     wis <- list()
     
-    if (ninner > 0) for (iinner in 1:ninner) {
-      # Inner loop
-      
-      
-      
-      # Predict warping parameters for all functional samples
-      warp_change <- c(0, 0)
-      if (homeomorphisms == 'hard') {
-        #TODO: constrainOptim
-        stop("Hard homeomorphic constrained optimization for warps is not implemented.")
-      } else {
-        # Parallel prediction of warping parameters
-        tryPar <- T  ## Pr?v parallelk?rsek
-        w_res <- try (
-          if (!tryFejl) {
+    if (ninner > 0)     #  wis <- list()
+      for (iinner in 1:ninner) {
+        # Inner loop
+        cat(iinner, '\t')
+        
+        # Predict warping parameters for all functional samples
+        warp_change <- c(0, 0)
+        if (homeomorphisms == 'hard') {
+          #TODO: constrainOptim
+          stop("Hard homeomorphic constrained optimization for warps is not implemented.")
+        } 
+        else if (attr(warp_fct, "mw") != 0) {
+          # Parallel prediction of warping parameters
+          gr <- NULL
+          w_res <- list()
+          
+          if (inner_parallel)  w_res <- 
             foreach(i = 1:n) %dopar% {
-              gr <- NULL
-              if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
-              else cis[[i]] <- c 
-              # warp_optim_method <- 'Nelder-Mead'
+              if (!is.null(functional))  stop("functional && inner_parallel does not work together!")
+
               warp_optim_method <- 'CG'
-              ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
+              if (use.nlm) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], 
+                                     c = if (!is.null(design)) c %*%  (design[[i]] %x% diag(K)) else c, Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
+              else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], 
+                                c = if (!is.null(design)) c %*%  (design[[i]] %x% diag(K)) else c, Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
+              
               if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
-              tryPar <- F
               return(ww)
             }
-          })
-        if (tryPar) { ## .. ellers ..
-          w_res <- wis
-          gr <- NULL
-          
-          for ( i in 1:n) {
+          else for ( i in 1:n) {
+            
             if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
             else cis[[i]] <- c 
             warp_optim_method <- 'Nelder-Mead'
-            ww0 <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)
-            ww <- ww0$par
+            if (use.nlm) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
+            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
             
-
             if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
             w_res[[i]] <- ww
-            wis[[i]] <- w_res[[i]]
           }
-          # print(sum(posteriorLik))
-          # print(posteriorLik)
           
-          tryFejl <- T
+          for (i in 1:n) {
+            warp_change[1] <- warp_change[1] + sum((w[, i] - w_res[[i]])^2)
+            warp_change[2] <- max(warp_change[2], abs(w[, i] -  w_res[[i]]))
+            w[, i] <- w_res[[i]]
+          }
+        }
+        else cat(" Skipping inner optimization")
+        # Update spline weights
+        if (is.null(design)) {
+          c <- splw(y, t, warp_fct, w, Sinv, basis_fct, K = K)
+        } else {
+          c <- (splw.d(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design))
         }
         
         
         
-        for (i in 1:n) {
-          warp_change[1] <- warp_change[1] + sum((w[, i] - w_res[[i]])^2)
-          warp_change[2] <- max(warp_change[2], abs(w[, i] -  w_res[[i]]))
-        }
+        if (warp_change[2] < 1e-2 / sqrt(mw)) break 
         
-        for (i in 1:n) w[, i] <- w_res[[i]]
       }
-      
-      # Update spline weights
-      if (!is.null(design)) {
-        c <- (splw.d(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design))
-      } else {
-        c <- splw(y, t, warp_fct, w, Sinv, basis_fct, K = K)
-      }
-      
-      
-      
-      if (warp_change[2] < 3e-3 / sqrt(mw)) break #TODO: Consider other criteria
-    }
     
+    ### Outer loop part. 
     
+    ## Construct residual vector for given warp prediction
     
-    # Likelihood estimation of parameters (outer loop)
-    
-    
-    
-    # Pre-compute warped time
-    for (i in 1:n) {
-      t_warped[[i]] <- warp_fct(w[, i], t[[i]])
-    }
-    
-    
-    
-    # Construct residual vector for given warp prediction
     Zis <- list()
     r <- y
     
-    
-    ## Her er det lidt mindre klart
-    for (i in 1:n) {
-      if (is.null(design)) cis[[i]] <- c
-      else cis[[i]] <- c %*%  (design[[i]] %x% diag(K))
-      twarped <- t_warped[[i]]
-      if (!is.null(warp_cov)) {
-        if (warp_type == 'smooth') dwarp[[i]] <- warp_fct(w[, i], t[[i]], w_grad = TRUE)
-        Zis[[i]] <- matrix(Zi(twarped, dwarp[[i]], basis_fct, cis[[i]][, 1]), m[i], mw)
-        for (k in 2:K) {
-          Zis[[i]] <- rbind(Zis[[i]], matrix(Zi(twarped, dwarp[[i]], basis_fct, cis[[i]][, k]), m[i], mw))
-        }
-        
-      } else {
-        Zis[[i]] <- Matrix(0, m[i]*K, mw)
-      }
-      
-      
-      rrr <- y[[i]]
-      for (k in 1:K) {
-        
-        if (nrow(w) == 1) {
-          rrr[,k] <- rrr[,k] - basis_fct(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
-        } else {
-          rrr[,k] <- rrr[,k] -  basis_fct(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] %*% w[, i]
-        }
-      }
-      r[[i]] <- rrr
-    }
-    
-    ## If warps are strange, try to re-run inner loop and compare. warp_cov has to be.
-    
-    
-    
-    # Check wheter the final outer loop has been reached
-    
-    # TODO: Should in principle be done before warps are updated in the final iteration!
-    # Estimate of sigma if final iteration is reached
+    for (i in 1:n)  eval(RZ.ting) 
     
     w_best <- w
     c_best <- c
     
-    sigma <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=T)
-
-return(list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, warp_cov_par = warp_cov_par_best, sigma = sigma, like = like_best, Zis = Zis, r = r))
+    if(eval_likelihood) {
+      sigma <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=T)
+      like_best <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=F)
+    } 
+  return(list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, warp_cov_par = warp_cov_par_best, sigma = sigma, like = like_best, Zis = Zis, r = r))
 }
 
 

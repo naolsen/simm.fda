@@ -105,6 +105,7 @@ kovMat <- function(t, a, tw, timefunction, stack = TRUE, noise = 0, ...) {
 #' @export
 #'
 #' @examples
+#' 
 OUtid <- function(s, t, lambda) { ## OU process
     exp(-abs(s - t) * lambda)
 }
@@ -122,7 +123,7 @@ OUtid <- function(s, t, lambda) { ## OU process
 #'
 #' @examples
 BMtid <- function(s, t, bridge = TRUE) { ## Brown bridge/motion
-    x <- pmin(s, t)
+    x <- pmin.int(s, t)
     if (bridge) return(x - s*t)
     else return(x)
 }
@@ -130,7 +131,7 @@ BMtid <- function(s, t, bridge = TRUE) { ## Brown bridge/motion
 
 ## Matern temporal covariance structure
 
-
+#' Matern temporal covariance structure
 #'
 #' @param range range parameter
 #' @param smooth smoothness parameter
@@ -138,7 +139,7 @@ BMtid <- function(s, t, bridge = TRUE) { ## Brown bridge/motion
 #' 2^(smooth-1)/gamma(smooth) * range^smooth ^ K_smooth(|s-t|/range)
 #' 
 #' @rdname Tidsfunktioner
-#' @return
+#' @return A vector. Proper use is together with \code{outer} or \code{kovMat}.
 #' @export
 #'
 #' @examples
@@ -180,8 +181,7 @@ poly.bridge <- function(tmin, tmax, coef) { ## Bemærk ændringer på parametris
 
 #' Polynomial 'bridge' of arbitrary order
 #'
-#' @param tmin 
-#' @param tmax 
+#' @param tmin,tmax  Max and min values
 #' @param coef Polynomial coefficients for bridge, in increasing order. 
 #' 
 #' @details Generalise \code{poly.bridge} to arbitrary order.
@@ -202,13 +202,10 @@ poly.larger <- function(tmin, tmax, coef) {
 }
 
 
-#' Matern covariance and bridge
+#' Matern covariance and bridge timefunction
 #'
-#' @param s,t 
-#' @param t 
-#' @param range 
-#' @param smooth 
-#' @param koef 
+#' @param s,t time arguments
+#' @param range,smooth,koef Matern parameters. See \link{Materntid} 
 #' 
 #' @details This is a specific implementation for Matern covariance.
 #'
@@ -228,8 +225,8 @@ poly.larger <- function(tmin, tmax, coef) {
 #' kovMat(ti, list(a1, a2), c(0,1), f, params = c(0.5, 2, 1, 1), noise = 0.1)
 #' 
 poly.Matern <- function(s,t, range, smooth, koef) {
-  x1 <- pmin(s,t)
-  x2 <- pmax(s,t)
+  x1 <- pmin.int(s,t)
+  x2 <- pmax.int(s,t)
   range <- (x2-x1)/range
   range[range == 0] <- 1e-12
   (besselK(range, smooth) * range^smooth / (gamma(smooth) *2 ^(smooth-1))) * poly.bridge(x1, x2, koef)

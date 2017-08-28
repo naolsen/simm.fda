@@ -16,11 +16,15 @@ Zi <- function(t, dwarp, basis_fct, c) {
 }
 
 
+## Multivariat version af Zi
+
 multi.Zi <- function(t, dwarp, basis_fct, c, mw) {
   K <- ncol(c)
   b0 <- basis_fct(t, deriv = TRUE)
   
   basis <- array( , dim = c(length(t), K, mw))
   for (i in 1:K) basis[,i,] <- dwarp* as.numeric(b0 %*% c[,i])
-  return(matrix(basis, length(t)*K, mw))
+  dim(basis) <- c(length(t)*K, mw)
+  
+  return(basis)
 }

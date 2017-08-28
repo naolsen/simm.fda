@@ -209,9 +209,9 @@ make_basis_fct <- function(kts = NULL, df = NULL, type = 'B-spline', intercept =
   # Match type
   types <- c('B-spline', 'increasing', 'constant', 'Fourier', 'intercept')
   type <- types[pmatch(type, types)]
-  if (type == "'intercept") type <- 'constant'
   
   if (is.na(type)) stop('Invalid type of basis.')
+  if (type == "'intercept") type <- 'constant'
   
   # Check that kts or df is supplied if type is different from 'intercept'
   if (type != 'constant' & is.null(kts) & is.null(df)) stop('You must supply either list of knots or degrees of freedom.')
@@ -321,7 +321,7 @@ make_basis_fct <- function(kts = NULL, df = NULL, type = 'B-spline', intercept =
   # Fourier basis.
   #
   if (type == "Fourier") {
-    if (df %% 2 != 1) stop(df)
+    if (df %% 2 != 1) stop("df must be an odd integer for Fourier bases.")
     b <- make_fourier_basis(kts, df %/% 2)
     intercept <- TRUE
   }

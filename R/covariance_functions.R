@@ -10,7 +10,7 @@
 #' @param default.value Default value
 #' 
 #' @description This is called default covariance function as this is typically used
-#' @return
+#' @return Covariance function
 #' @export
 #'
 #' @examples
@@ -28,7 +28,7 @@ default_warp_cov <- function(default.value) {
 #'
 #' @description Combines default_warp_cov and a shift parameter. Shift and warp are assumed to be independent.
 #' 
-#' @return
+#' @return Covariance function
 #' @export
 #'
 #' @seealso \link{default_warp_cov}, \link{w.shift}
@@ -52,7 +52,7 @@ warp_and_shift_cov <- function(default.values) {
 #'
 #' @param default.value Default value
 #'
-#' @return
+#' @return Covariance function
 #' @export
 #'
 shift_covariance <- function(default.value) {
@@ -63,6 +63,23 @@ shift_covariance <- function(default.value) {
   g
 }
   
-  
+#' Second-order derivative covariance
+#'
+#' @param default.value Default value
+#'
+#' @return Covariance function
+#' @export
+#'
+#' @examples
+order2_covariance <- function(default.value) {
+
+    g <- function(t, param)  
+      param^2* outer(t,t, function(x,y) x*y*(1/3 + 1/6*(x^2+y^2)-1/2*pmax.int(x,y)) - 1/6* pmin.int(x,y)^3)
+
+  attr(g, 'param') <- c(tau = default.value)
+  g
+}   
+
+
 
 

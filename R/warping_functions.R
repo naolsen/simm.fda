@@ -50,8 +50,12 @@ make_warp_fct <- function(type = c('shift', 'linear', 'piecewise-linear', 'smoot
     v <- function(w, t, w_grad = FALSE) {
       if (!w_grad) {
         vt <- t + approx(c(0, tw, 1), c(0, w, 0), xout = t, rule = 2)$y
-        vt[vt < 0] <- 0
-        vt[vt > 1] <- 1
+        #vt[vt < 0] <- 0
+        #vt[vt > 1] <- 1
+        
+        ## Niels: strengt voksende nu krævet:
+        if (any(diff(c(0, w + tw, 1)) <= 0)) vt <- t
+        
         return(vt)
       } else {
         # Derivative of warp function

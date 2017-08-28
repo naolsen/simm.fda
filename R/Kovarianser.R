@@ -114,9 +114,8 @@ mvBrown <- function(t, tau = 1, sig, noise = 0, motion = FALSE) {
 
 #' Multivariate Matern covariance
 #'
-#' @param t 
+#' @param t time points
 #' @param range,smooth range and smoothness parameters 
-#' @param smooth 
 #' @param noise. noise for different coordinates. Must be a vector of length K. 
 #' @param sig Marginal covariance. K x K matrix 
 #' 
@@ -182,12 +181,12 @@ c.mv.Matern <- function( t, range =1, smooth=200, par ) {
 
 #' Diagonal covariance
 #'
-#' @param t 
+#' @param t time points
 #' @param par parameters. One parameter for each dimension
 #' 
 #' @description This is the simplest covariance function. 
 #'
-#' @return
+#' @return Covariance matrix
 #' @export
 #'
 #' @examples 

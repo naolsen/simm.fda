@@ -12,8 +12,10 @@ I will do my best to ensure all changes are included here
 
 28-09-16: Added Fourier basis as a basis function
 
-16-04-17: Large update. A number of small twerks and increased performance and code cleaning. Updated basis_fct from pavpop and added integration with Functional package.
-(Functional package not needed to use simm.fda, avaliable on request, will be uploaded to github soon)
+16-04-17: Large update. A number of small twerks and increased performance and code cleaning. Updated basis_fct from pavpop and added integration with fctbases package.
+(fctbases package not needed to use simm.fda, avaliable on request, will be uploaded to github soon)
+
+15-05-17: fctbases package on GitHub.
 
 01-08-17: Small update. A few instances which caused errors have been corrected. Added shift_cov for pure shift functions.
 

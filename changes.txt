@@ -21,3 +21,4 @@ I will do my best to ensure all changes are included here
 
 28-08-17: Update. Various improvements and code cleaning, in particular much has been done wrt. parallellization. ppMulti.em (that uses EM algorithm) has got a major overhaul including parallelization of EM step. 2nd-order (warp) covariance function has been added.
 
+31-08-17: Minor errors corrected.

@@ -148,10 +148,10 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
     if (inv_amp) {
       Sinv[[i]] <- inv_amp_cov(t[[i]], amp_cov_par)
     } else {
-      Sinv[[i]] <- chol2inv(chol(S[[i]]))
+      Sinv[[i]] <- chol2inv(S.chol[[i]])
     }
   }
-  ## At gøre: Kombinër S.chol med inv_amp om muligt
+  ## At gøre: Kombinér S.chol med inv_amp om muligt
   
   # Build warp covariance and inverse
   if (!is.null(warp_cov)) {
@@ -276,7 +276,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         west[,i] <- solve(Cinv +  Sz, t(Sk) %*% backsolve(Scholi, rr, transpose = TRUE))
         wvar <- sigma^2 * (C - C %*% (Sz - Sz %*% solve(Cinv +  Sz ,   Sz)) %*% C)
         
-        warpt <- t_warped[[i]]
+        #warpt <- t_warped[[i]]
         #Ri <- list()
         R <- as.spam(t(design[[i]]) %x% diag(K)) %x% as.spam(bf(warpt))
         
@@ -310,8 +310,8 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       ## Do the EM stuff
       
       if (inner_parallel[2]) Amatt <- 
-        foreach (i = 1:n, rr = r, ZZ = Zis, Scholi = S.chol, wd = dwarp, yi= y, .combine = '+', 
-                 .noexport = c("S", "Sinv", "Zis", "r", "Schol", "y", "t"), .inorder = FALSE) %dopar% eval(EM.expr)
+        foreach (i = 1:n, rr = r, ZZ = Zis, Scholi = S.chol, wd = dwarp, yi= y, warpt = t_warped, .combine = '+', 
+                 .noexport = c("S", "Sinv", "Zis", "r", "Schol", "y", "t", "dwarp", "t_warped"), .inorder = FALSE) %dopar% eval(EM.expr)
       else { ## for-loop
         Amatt <- matrix(0, no.c, no.c + 1)
         for (i in 1:n) {
@@ -319,6 +319,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
           ZZ <- Zis[[i]]
           Scholi <- S.chol[[i]]
           wd <- dwarp[[i]]
+          warpt <- t_warped[[i]]
           yi <- y[[i]]
           Amatt <- Amatt + eval(EM.expr)
         }
@@ -345,7 +346,6 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
     
     # Check wheter the final outer loop has been reached
     if (iouter != nouter) {
-      t_like <- t
       # if (warped_amp) t_like <- t_warped
       # Likelihood function
       par1 <- which(paramMax)
@@ -357,7 +357,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       if (!is.null(optim.rule) && is.null(attr(optim.rule, "min"))) attr(optim.rule, "min") <- 0
       if (randomCycle[1] > -1 && randomCycle[2] < iouter) {
         par1 <- sample(par1, randomCycle[1])
-        #        print(paste("Using random cycles. Optimizing on parameters",par1))
+        
         print("Using random cycles. Optimizing on parameters ")
         cat(par1, "\n")
       } else if (!is.null(optim.rule) && attr(optim.rule, "min") < iouter) {
@@ -389,7 +389,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       # Likelihood gradient
         like_gr <- function(par) {
           epsilon <- like_eps
-          rep(1:length(par), each = 2)
+          
           res <- rep(0, length(par))
           for (ip in  1:length(par)) {
             for (sign in c(1, -1)) {
@@ -440,26 +440,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         c_best <- c
         amp_cov_par_best <- amp_cov_par
         warp_cov_par_best <- warp_cov_par
-        
-        # Update covariances
-        for (i in 1:n) {
-          twarped <- t[[i]]
-          #  if (warped_amp) twarped <- t_warped[[i]]
-          # Check if an amplitude covariance is defined
-          S[[i]] <- amp_cov(twarped, amp_cov_par)
-          if (inv_amp) {
-            Sinv[[i]] <- inv_amp_cov(twarped, amp_cov_par)
-          } else {
-            Sinv[[i]] <- chol2inv(chol(S[[i]]))
-          }
-        }
-        
-        if (!is.null(warp_cov)) {
-          C <- warp_cov(tw, warp_cov_par)
-          Cinv <- solve(C)
-        } else {
-          C <- Cinv <- matrix(0, mw, mw)
-        }
+
         cat(':\t', param, '\n')
         cat('Linearized likelihood:\t', like_best, '\n')
         if (gem.tmp) {
@@ -469,7 +450,26 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
                          warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter)
           save(tmp_res, file = save_temp)
         }
-        
+          # Update covariances
+          for (i in 1:n) {
+            twarped <- t[[i]]
+            
+            S[[i]] <- amp_cov(twarped, amp_cov_par)
+            S.chol[[i]] <- chol(S[[i]])
+            
+            if (inv_amp) {
+              Sinv[[i]] <- inv_amp_cov(twarped, amp_cov_par)
+            } else {
+              Sinv[[i]] <- chol2inv(S.chol[[i]])
+            }
+          }
+          
+          if (!is.null(warp_cov)) {
+            C <- warp_cov(tw, warp_cov_par)
+            Cinv <- solve(C)
+          } else {
+            C <- Cinv <- matrix(0, mw, mw)
+          }
         
       } else {
         cat(':\tLikelihood not improved, returning best likelihood estimates.\n')

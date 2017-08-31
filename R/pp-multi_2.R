@@ -137,7 +137,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
 
   
   if(parallel.lik) {
-    print("Skifter funktion")
+    print("Using parallelized likelihood")
     likelihood <- like.par
     if(!is.null(attr(amp_cov, "chol"))) print("Bruger smart choleski")
   }
@@ -283,24 +283,21 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
       # Predict warping parameters for all functional samples
       warp_change <- c(0, 0)
-      if (homeomorphisms == 'hard') {
-        #TODO: constrainOptim
-        stop("Hard homeomorphic constrained optimization for warps is not implemented.")
-      } 
-      else if (attr(warp_fct, "mw") != 0) {
+      
+      if (attr(warp_fct, "mw") != 0) {
         # Parallel prediction of warping parameters
           gr <- NULL
           w_res <- list()
+          if (inner_parallel && !is.null(functional))  stop("functional && inner_parallel does not work together!")
         
           if (inner_parallel)  w_res <- 
-              foreach(i = 1:n, Sinvi = Sinv, .noexport = c("Sinv", "S", "S.chol", "dwarp", "r", "Zis")) %dopar% {
-                if (!is.null(functional))  stop("functional && inner_parallel does not work together!")
-                if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
-                else cis[[i]] <- c 
+              foreach(i = 1:n, Sinvi = Sinv, yi = y, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis")) %dopar% {
+
+                ci <- if (!is.null(design)) c %*%  (design[[i]] %x% diag(K)) else c
 
                 warp_optim_method <- 'CG'
-                if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
-                else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
+                if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
+                else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
                 
                 if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
                 return(ww)
@@ -375,8 +372,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
     
     # Check wheter the final outer loop has been reached
     if (iouter != nouter) {
-      t_like <- t
-      
       
       # Likelihood function
       par1 <- which(paramMax)
@@ -474,12 +469,20 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         c_best <- c
         amp_cov_par_best <- amp_cov_par
         warp_cov_par_best <- warp_cov_par
-        
+
+        cat('\t', param, '\n')
+        cat('Linearized likelihood:\t', like_best, '\n')
+        if (gem.tmp) {
+          cat('Saving estimates to ',save_temp, '\n')
+          tmp_res = list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, sigma = 
+                           likelihood(amp_cov_par_best, warp_cov_par_best, r, Zis, amp_cov, warp_cov, t, tw, sig=T),
+                         warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter)
+          save(tmp_res, file = save_temp)
+        }
         # Update covariances
         for (i in 1:n) {
           twarped <- t[[i]]
           
-          # Check if an amplitude covariance is defined
           S[[i]] <- amp_cov(twarped, amp_cov_par)
           if (inv_amp) {
             Sinv[[i]] <- inv_amp_cov(twarped, amp_cov_par)
@@ -494,16 +497,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         } else {
           C <- Cinv <- matrix(0, mw, mw)
         }
-        cat('\t', param, '\n')
-        cat('Linearized likelihood:\t', like_best, '\n')
-        if (gem.tmp) {
-          cat('Saving estimates to ',save_temp, '\n')
-          tmp_res = list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, sigma = 
-                           likelihood(amp_cov_par_best, warp_cov_par_best, r, Zis, amp_cov, warp_cov, t, tw, sig=T),
-                         warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter)
-          save(tmp_res, file = save_temp)
-        }
-        
         
       } else {
         cat(':\tLikelihood not improved, returning best likelihood estimates.\n')

@@ -7,9 +7,12 @@
 diag_covariance(t, par)
 }
 \arguments{
-\item{t}{}
+\item{t}{time points}
 
 \item{par}{parameters. One parameter for each dimension}
+}
+\value{
+Covariance matrix
 }
 \description{
 This is the simplest covariance function.

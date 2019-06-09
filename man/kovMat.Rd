@@ -15,7 +15,8 @@ kovMat(t, a, tw, timefunction, stack = TRUE, noise = 0, ...)
 
 \item{timefunction}{Temporal covariance structure}
 
-\item{stack}{How should stack the observations. TRUE corresponds to the implementation of ppMUlti, while FALSE is the alternative ordering.}
+\item{stack}{How should the observations be ordered? TRUE corresponds to coordinate-/column-major ordering which is 
+required by ppMUlti, while FALSE is the alternative ordering, time-/row-major ordering.}
 
 \item{noise}{Noise. Either a single number or a vector of length K*length(t)}
 

@@ -5,8 +5,8 @@
 \title{Returns linearization stuff}
 \usage{
 pavpop_returner_zogr(y, t, basis_fct, warp_fct, amp_cov = NULL,
-  warp_cov = NULL, iter = 5, use.nlm = FALSE, functional = NULL,
-  amp_cov_par = NULL, w0 = NULL, pr = T, design = NULL,
+  warp_cov = NULL, iter = 0, use.nlm = FALSE, functional = NULL,
+  amp_cov_par, w0 = NULL, c0 = NULL, design = NULL,
   inner_parallel = FALSE, eval_likelihood = FALSE)
 }
 \arguments{
@@ -26,21 +26,24 @@ pavpop_returner_zogr(y, t, basis_fct, warp_fct, amp_cov = NULL,
 
 \item{amp_cov_par}{Values for amplitude covariance parameters.}
 
-\item{w0}{Starting values for warp. NULL is allowed.}
+\item{w0}{(Starting) values for warp. NULL is allowed.}
 
-\item{pr}{Printing option}
+\item{c0}{(Starting) values for spline coefficients. NULL is allowed.}
 
 \item{design}{Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.}
 
 \item{inner_parallel}{Should the inner optimization be done parallelly?}
 
-\item{eval_likelihood}{Calculate linearized likelihood of final estimate? Not yet implemented.}
+\item{eval_likelihood}{Calculate linearized likelihood of final estimate?}
 }
 \value{
 A list of results including r and z
 }
 \description{
 Returns linearization stuff
+}
+\details{
+This function is handy if you need content used in linearization.
 }
 \seealso{
 \link{ppMulti}

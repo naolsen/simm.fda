@@ -12,6 +12,9 @@
 #' } 
 #'
 #'
-"arm_data_example"
+#'
+
+
+#"arm_data_example"
 
 ## At g?re: Inklud?r kode af hvordan det er blevet til. 

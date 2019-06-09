@@ -54,7 +54,6 @@
 #' randomCycle and optimRule are two ways of optimizing on only a subset of the parameters at a time. These overwrites the paramMax argument.
 #' TBD: descriptions of these.
 #'
-#' @aliases simm.fda
 #'
 #' @seealso 
 #' Important details can be found in simm-fda-short-desc.pdf

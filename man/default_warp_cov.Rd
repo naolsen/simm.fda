@@ -15,3 +15,8 @@ Covariance function
 \description{
 This is called default covariance function as this is typically used
 }
+\examples{
+warp_cov <- default_warp_cov(0.5)
+warp_cov
+
+}

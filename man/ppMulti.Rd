@@ -7,9 +7,9 @@
 ppMulti(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
   iter = c(5, 5), w0 = NULL, use.nlm = c(FALSE, FALSE),
   functional = NULL, amp_cov_par = NULL, paramMax = rep(TRUE,
-  length(amp_cov_par)), parallel.lik = FALSE, warp_opt = TRUE,
-  like_optim_control = list(), pr = FALSE, design = NULL,
-  inner_parallel = FALSE, save_temp = NULL)
+  length(amp_cov_par)), parallel.lik = c(FALSE, FALSE),
+  warp_opt = TRUE, like_optim_control = list(), pr = FALSE,
+  design = NULL, inner_parallel = FALSE, save_temp = NULL)
 }
 \arguments{
 \item{y}{List of observations in matrix form. NAs allowed}
@@ -20,9 +20,9 @@ ppMulti(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
 
 \item{warp_fct}{Warp function}
 
-\item{amp_cov}{Amplitude covariance. Must be on the form function(t, param)}
+\item{amp_cov}{Amplitude covariance function. Must be on the form function(t, param)}
 
-\item{warp_cov}{Warp covariance}
+\item{warp_cov}{Warp covariance function}
 
 \item{iter}{two-dimensional integer of maximal number of outer iterations &
 maximal number of inner iterations per outer iteration.}

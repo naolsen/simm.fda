@@ -4,10 +4,12 @@
 \alias{order2_covariance}
 \title{Second-order derivative covariance}
 \usage{
-order2_covariance(default.value)
+order2_covariance(default.value, type = "bridge")
 }
 \arguments{
 \item{default.value}{Default value}
+
+\item{type}{If bridge, use integrated brownian bridge (one parameter), else use integrated brownian motion (two parameters)}
 }
 \value{
 Covariance function

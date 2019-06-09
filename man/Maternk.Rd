@@ -17,6 +17,9 @@ Covariance matrix for Matern covariance
 \description{
 Matern covariance
 }
+\details{
+Note that this function follows a slightly different parametrization than conventionally used.
+}
 \examples{
 t <- seq(0,1 , 0.01)
 Maternk(t, c(0.1, 2, 1))

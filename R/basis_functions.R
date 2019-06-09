@@ -207,7 +207,7 @@ make_fourier_basis <- function(endpoints, order) {
 
 make_basis_fct <- function(kts = NULL, df = NULL, type = 'B-spline', intercept = TRUE, control = list(), ...) {
   # Match type
-  types <- c('B-spline', 'increasing', 'constant', 'Fourier', 'intercept')
+  types <- c('B-spline', 'increasing', 'constant', 'Fourier', 'intercept', 'ns')
   type <- types[pmatch(type, types)]
   
   if (is.na(type)) stop('Invalid type of basis.')
@@ -271,6 +271,35 @@ make_basis_fct <- function(kts = NULL, df = NULL, type = 'B-spline', intercept =
     attr(b, 'boundary') <- boundary
   }
   
+  # Niels
+  # Natural cubic spline
+  # TODO: Find formel for afledte til naturlige kubiske splines
+  if (type == 'ns') {
+    
+    if (is.null(kts)){
+      kts <- seq(boundary[1], boundary[2], length = df - 4 + (3L - intercept))
+      kts <- kts[2:(length(kts)-1)]
+    }
+    # Should sparse matrices be used?
+    if (is.null(control$sparse)) {
+      sparse <- FALSE
+    } else {
+      sparse <- control$sparse
+    }
+    epsilon <- 1e-5
+    
+    # Basis function to return
+    b <- function(t, deriv = FALSE) {
+      if (!deriv) ns(t, knots = kts, Boundary.knots = boundary, intercept = intercept)
+      else 5e4*(ns(t + 1e-5, knots = kts, Boundary.knots = boundary, intercept = intercept) -
+        ns(t - 1e-5, knots = kts, Boundary.knots = boundary, intercept = intercept))
+    }
+      
+    
+    attr(b, 'boundary') <- boundary
+    attr(b, 'df') <- length(kts) + intercept + 1
+    }
+  
   #
   # Increasing spline basis
   #
@@ -329,6 +358,8 @@ make_basis_fct <- function(kts = NULL, df = NULL, type = 'B-spline', intercept =
   if(is.null(attr(b, 'df')))  attr(b, 'df') <- length(kts) + order - 1 - 1 * (type == 'increasing') + intercept
     attr(b, 'intercept') <- intercept
     attr(b, 'constraints') <- constraints
+    if (type == 'increasing') attr(b, 'increasing') <- TRUE
+    else attr(b, 'increasing') <- FALSE
   return(b)
 }
 

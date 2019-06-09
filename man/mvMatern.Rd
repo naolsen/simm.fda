@@ -7,11 +7,9 @@
 mvMatern(t, range = 1, smooth = 2, noise = 1, sig)
 }
 \arguments{
-\item{t}{}
+\item{t}{time points}
 
 \item{range, smooth}{range and smoothness parameters}
-
-\item{smooth}{}
 
 \item{sig}{Marginal covariance. K x K matrix}
 

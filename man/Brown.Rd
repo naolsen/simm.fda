@@ -7,11 +7,14 @@
 Brown(t, par = c(tau = 1, noise = 1), motion = FALSE)
 }
 \arguments{
-\item{t}{}
+\item{t}{time points}
 
 \item{par}{Two-dimensional. Variance of BB/BM and variance of noise.}
 
-\item{motion}{logical. Brownian bridge or brownian motion}
+\item{motion}{logical. Brownian bridge or brownian motion?}
+}
+\value{
+Covariance matrix
 }
 \description{
 Brownian motion and Brownian bridge

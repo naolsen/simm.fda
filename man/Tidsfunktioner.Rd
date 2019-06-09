@@ -27,8 +27,6 @@ Materntid(s, t, range, smooth)
 A vector. Proper use is together with \code{outer} or \code{kovMat}.
 }
 \description{
-Temporal covariance structures
-
 Matern covariance structure: 
 2^(smooth-1)/gamma(smooth) * range^smooth ^ K_smooth(|s-t|/range)
 }
@@ -37,4 +35,11 @@ Time covariance functions should not be called directly. Either use as part of k
 }
 \examples{
 
+t <- seq(0,1, 0.1)
+outer(t, t, OUtid, lambda = 1) ## OU process
+outer(t, t, BMtid, bridge = FALSE)
+
+}
+\seealso{
+\link{OUproces}, \link{Brown}, \link{Maternk}
 }

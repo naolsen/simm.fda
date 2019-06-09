@@ -4,8 +4,8 @@
 \alias{make_basis_fct_old}
 \title{Generate B-spline basis function}
 \usage{
-make_basis_fct_old(kts, intercept = FALSE, increasing = FALSE, order = 3,
-  boundary = c(0, 1))
+make_basis_fct_old(kts, intercept = FALSE, increasing = FALSE,
+  order = 3, boundary = c(0, 1))
 }
 \arguments{
 \item{kts}{a sequence of increasing points specifying the placement of the knots.}

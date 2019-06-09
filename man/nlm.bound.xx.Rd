@@ -4,8 +4,8 @@
 \alias{nlm.bound.xx}
 \title{Bounded optimization using nlm}
 \usage{
-nlm.bound.xx(fct, p, lower, upper, symmetric = FALSE, flagInfinity = TRUE,
-  init = FALSE, ...)
+nlm.bound.xx(fct, p, lower, upper, symmetric = FALSE,
+  flagInfinity = TRUE, init = FALSE, ...)
 }
 \arguments{
 \item{fct}{Function to be optimized over. One vector argument.}

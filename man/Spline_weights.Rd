@@ -34,10 +34,9 @@ A matrix with spline weights
 }
 \description{
 Spline weights
-
-Spline weights
 }
 \details{
 splw is used when no design is supplied.
 splw.d is used when a desigen is supplied.
+splw has been updated to handle increasing splines.
 }

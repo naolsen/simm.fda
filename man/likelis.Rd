@@ -28,7 +28,7 @@ like.par(param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig = FALSE,
 
 \item{sig}{Return sigma or likelihood?}
 
-\item{pr}{Print value?}
+\item{pr}{Print option. Only use for debugging.}
 }
 \value{
 -2*logL(parameters)

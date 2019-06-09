@@ -7,9 +7,10 @@
 ppMulti.em(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
   iter = c(5, 5), use.nlm = c(FALSE, FALSE), functional = NULL,
   amp_cov_par = NULL, paramMax = rep(T, length(amp_cov_par)),
-  warp_opt = TRUE, parallel.lik = FALSE, like_optim_control = list(),
-  pr = TRUE, design = NULL, inner_parallel = c(TRUE, TRUE),
-  save_temp = NULL, w0 = NULL, c0 = NULL)
+  warp_opt = TRUE, parallel.lik = c(FALSE, FALSE),
+  like_optim_control = list(), pr = TRUE, design = NULL,
+  inner_parallel = c(TRUE, TRUE), save_temp = NULL, w0 = NULL,
+  c0 = NULL)
 }
 \arguments{
 \item{y}{List of observations in matrix form. NAs allowed}

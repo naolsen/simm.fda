@@ -5,7 +5,7 @@
 
 
 
-## New function for minimum. Actually equal to pmin, but MUCH faster.
+## New function for minimum. Actually equal to pmin, but MUCH faster. Update: pmin.int can do the same
 minFkt <- function(s, t) {
     x <- s > t
     x * t + (s * (!x))
@@ -16,11 +16,11 @@ minFkt <- function(s, t) {
 
 #' Brownian motion and Brownian bridge
 #'
-#' @param t 
+#' @param t time points
 #' @param par Two-dimensional. Variance of BB/BM and variance of noise.
-#' @param motion logical. Brownian bridge or brownian motion
+#' @param motion logical. Brownian bridge or brownian motion?
 #'
-#' @return
+#' @return Covariance matrix
 #' @export
 #'
 #' @examples
@@ -37,6 +37,8 @@ Brown <- function(t, par = c(tau = 1, noise = 1), motion = FALSE) {
 #'
 #' @param t time points
 #' @param par parameters
+#' 
+#' @details Note that function follows a slightly different parametrization than conventionally used. 
 #'
 #' @return Covariance matrix for Matern covariance
 #' @export

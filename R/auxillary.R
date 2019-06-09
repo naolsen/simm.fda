@@ -32,6 +32,34 @@ RZ.ting <- expression({
   
 })
 
+RZ.ting.spammed <- expression({
+  if (is.null(design)) cis[[i]] <- c
+  else cis[[i]] <- c %*%  (design[[i]] %x% diag(K))
+  
+  # Compute warped time
+  twarped <- t_warped[[i]] <- warp_fct(w[, i], t[[i]])
+  if (!is.null(warp_cov)) {
+    if (warp_type == 'smooth') dwarp[[i]] <- warp_fct(w[, i], t[[i]], w_grad = TRUE)
+    
+    Zis[[i]] <- as.spam(multi.Zi(twarped, dwarp[[i]], basis_fct, cis[[i]], mw)) ## Opdateret. multi.Zi er hurtigere.
+  } else {
+    Zis[[i]] <- matrix(0, m[i]*K, mw)
+  }
+  
+  ## Opdateret. Hurtigere evaluering af y - r - Zw^0
+  if (nrow(w) != 1) {
+    r[[i]] <- y[[i]] - as.numeric(basis_fct(twarped) %*% cis[[i]]) + as.numeric(Zis[[i]] %*% w[, i])
+  }
+  else {
+    rrr <- y[[i]]
+    
+    for (k in 1:K) {
+      rrr[,k] <- rrr[,k] - basis_fct(twarped) %*% cis[[i]][,k] + Zis[[i]][(m[i]*(k-1)+1):(m[i]*k),] * w[,i]
+    }
+    r[[i]] <- rrr
+  }
+  
+})
 
 #' Linearised likelihood function
 #'
@@ -43,7 +71,7 @@ RZ.ting <- expression({
 #' @param t Observation time points
 #' @param tw 
 #' @param sig Return sigma or likelihood?
-#' @param pr Print value?
+#' @param pr Print option. Only use for debugging.
 #' @rdname likelis
 #' 
 #' @details like.par performs parallelized likelihood
@@ -51,7 +79,6 @@ RZ.ting <- expression({
 #' @return -2*logL(parameters)
 #' @export
 #'
-#' @examples
 likelihood <- function(param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig=FALSE, pr = FALSE) {
   
   if (!is.null(warp_cov)) {
@@ -198,7 +225,7 @@ splw.d <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K, design
 
 ## Splinev??gte til flere dimensioner med kryds-korrelation
 
-## Spline weights for individual designs. 
+#' Spline weights for individual designs. 
 #' @description  Spline weights
 #'
 #' @param y list of observations
@@ -214,6 +241,7 @@ splw.d <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K, design
 #' 
 #' @details splw is used when no design is supplied.
 #' splw.d is used when a desigen is supplied.
+#' splw has been updated to handle increasing splines.
 #'
 #' @return A matrix with spline weights
 #' @export
@@ -235,10 +263,134 @@ splw <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K) {
     dvec <- dvec + bSinv %*% as.numeric(y[[i]])
   }
   
-  c <- as.numeric(MASS::ginv(as.matrix(Dmat)) %*% dvec)
+  if (attr(basis_fct, 'increasing')) {
+    
+    intercept <- !(attr(basis_fct, 'intercept')) 
+    
+    #  tryCatch({ ## To be improved...
+    #    c <- solve.QP(Dmat, dvec, Amat = diag(x = c(intercept,  rep(1, nb-1 )) ))$solution
+    #  }, error = function(e) {
+    
+    #    c <- as.numeric(MASS::ginv(as.matrix(Dmat)) %*% dvec)
+    #    cej0 <- (c != 0)
+    #    c[cej0] <- solve.QP(Dmat[cej0, cej0], dvec[cej0], Amat = diag(x = c(intercept,  rep(1, length(cej0) - 1) )))$solution
+    
+    #diag(Dmat) <- diag(Dmat) +  1e-6*mean(diag(Dmat))
+    #c <- solve.QP(Dmat, dvec, Amat = diag(x = c(intercept,  rep(1, nb-1 )) ))$solution
+    rank <- rankMatrix(Dmat)[1]
+    if (rank != nb) {
+      index <- nb
+      indices <- 1:nb
+      
+      # Perhaps this can be done smarter or better?
+      while (length(indices) > rank) {
+        tmp_indices <- indices[indices != index]
+        if (rankMatrix(Dmat[tmp_indices, tmp_indices]) == rank) {
+          indices <- tmp_indices
+        }
+        index <- index - 1
+      }
+      c <- rep(0, ncol(basis))
+      c[indices] <- solve.QP(Dmat = Dmat[indices, indices], dvec = dvec[indices,],
+                             Amat = diag(nrow = length(indices)))$solution
+      
+    }
+    else  c <- solve.QP(Dmat, dvec, Amat = diag(x = c(intercept,  rep(1, nb-1 )) ))$solution
+    
+    #  })
+  }
+  else c <- as.numeric(MASS::ginv(as.matrix(Dmat)) %*% dvec)
+  
   ce <- matrix(c, nc = K)
   return(ce)
 }
 
+## noget med nul
+splw.new <- function(y, tw, arp_fct, w, Sinv, basis_fct, weights = NULL, K) {
+  n <- length(y)
+  m <- sapply(y, nrow)
+  nb <- attr(basis_fct, 'df')*K
+  
+  if (is.null(weights)) weights <- rep(1, n)
+  
+  Dmat <- matrix(0, nb, nb)
+  dvec <- matrix(0, nb, 1)
+  
+  for (i in 1:n) {
+    basis <-diag(K) %x%  basis_fct(warp_fct(w[, i], t[[i]]))
+    bSinv <- weights[i] * (t(basis) %*% Sinv[[i]])
+    Dmat <- Dmat + bSinv %*% basis
+    dvec <- dvec + bSinv %*% as.numeric(y[[i]])
+  }
+  
+  if (attr(basis_fct, 'increasing')) {
+    
+    intercept <- !(attr(basis_fct, 'intercept')) 
+    diag(Dmat)[diag(Dmat) == 0] <- 1  ## 
+    
+    rank <- rankMatrix(Dmat)[1]
+    if (rank != nb) {
+      index <- nb
+      indices <- 1:nb
+      
+      # Perhaps this can be done smarter or better?
+      while (length(indices) > rank) {
+        tmp_indices <- indices[indices != index]
+        if (rankMatrix(Dmat[tmp_indices, tmp_indices]) == rank) {
+          indices <- tmp_indices
+        }
+        index <- index - 1
+      }
+      c <- rep(0, ncol(basis))
+      c[indices] <- solve.QP(Dmat = Dmat[indices, indices], dvec = dvec[indices,],
+                             Amat = diag(nrow = length(indices)))$solution
+      
+    }
+    else  c <- solve.QP(Dmat, dvec, Amat = diag(x = c(intercept,  rep(1, nb-1 )) ))$solution
+    
+  }
+  else c <- as.numeric(MASS::ginv(as.matrix(Dmat)) %*% dvec)
+  
+  ce <- matrix(c, nc = K)
+  return(ce)
+}
+
+
+## 'A' functions
+
+### Neg.binom
+
+#' Create negative binomial
+#'
+#' @param r 
+#'
+#' @export
+#'
+#' @examples Afkt <- create.negbin(4.5)
+#' #simfd.ed(..., ed.fct = Afkt, ...) ## Use with simfd.ed
+#' 
+#' @rdname Afkt
+create.negbin <- function(r) {
+  
+  Afkt <- function(x,y) (r+y)*log1p(exp(x)/r) ## Consistent with Poisson model; i.e. r \pil infty gives Poisson.
+  attr(Afkt, 'diff2') <-  function(x, y) (y+r) * exp(x)/(r*(1+exp(x)/r)^2)
+  
+  return(Afkt)
+}  
+
+#' Create Poisson model
+#'
+#' @export
+#'
+#' @examples Afkt <- create.poisson()
+#' #simfd.ed(..., ed.fct = Afkt, ...) ## Use with simfd.ed
+#' @rdname Afkt
+create.poisson <- function() {
+  
+  Afkt <- function(x,y) exp(x)
+  attr(Afkt, 'diff2') <-  function(x, y) exp(x)
+  
+  return(Afkt)
+} 
 
 

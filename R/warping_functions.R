@@ -10,10 +10,10 @@
 #' @export
 #' @seealso \link{w.shift}
 
-make_warp_fct <- function(type = c('shift', 'linear', 'piecewise-linear', 'smooth', 'identity'), tw = NULL, 
+make_warp_fct <- function(type = c('shift', 'linear', 'piecewise-linear', 'smooth', 'identity', 'integral'), tw = NULL, 
                           maxShift) {
   # Match type argument
-  types <- c('shift', 'linear', 'piecewise-linear', 'smooth', 'identity')
+  types <- c('shift', 'linear', 'piecewise-linear', 'smooth', 'identity', 'integral')
   type <- types[pmatch(type, types)]
   if (is.null(tw)) tw <- NA
 
@@ -71,7 +71,10 @@ make_warp_fct <- function(type = c('shift', 'linear', 'piecewise-linear', 'smoot
     }
     attr(v, 'initialize') <- 0
     attr(v, 'mw') <- mw
-  } else if (type == 'smooth') {
+  } else if (type == 'integral') {
+    v <- double.integrated.warp(tw)
+  } 
+    else if (type == 'smooth') {
     if (any(is.na(tw))) stop('all anchor points tw should be supplied for type \'smooth\'')
     if (min(tw) < 0 | max(tw) > 1) stop('anchor points tw should be within the interval (0, 1)')
     mw <- length(tw)

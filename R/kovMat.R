@@ -11,7 +11,7 @@
 #' @return Y^{1/2}
 #'
 dekomp <- function(Y) {
-    e <- eigen(Y)
+    e <- eigen(Y, symmetric = TRUE)
     ev <- e$vec
     ev %*% diag(sqrt(e$val)) %*% t(ev)
 }
@@ -52,7 +52,8 @@ MatInterpolate <- function(t, a1, a2) {
 #' @param a list of matrices
 #' @param tw Anchor points. Must be in increasing order
 #' @param timefunction Temporal covariance structure
-#' @param stack How should stack the observations. TRUE corresponds to the implementation of ppMUlti, while FALSE is the alternative ordering.
+#' @param stack How should the observations be ordered? TRUE corresponds to coordinate-/column-major ordering which is 
+#' required by ppMUlti, while FALSE is the alternative ordering, time-/row-major ordering.
 #' @param noise Noise. Either a single number or a vector of length K*length(t)
 #' @param ... Parameters passed to timefunction
 #' 
@@ -72,16 +73,16 @@ kovMat <- function(t, a, tw, timefunction, stack = TRUE, noise = 0, ...) {
     
     for (j in 1:(z - 1)) {
         g <- t >= tw[j] & t <= tw[j + 1]
-        ti <- t[g]
+        #ti <- t[g]
         if (all(!g)) next
-        h <- MatInterpolate(c(tw[j], ti, tw[j + 1]), a[[j]], a[[j + 1]])
+        #h <- MatInterpolate(c(tw[j], ti, tw[j + 1]), a[[j]], a[[j + 1]])
 
-        bmat[, rep(g, each = adim)] <- (apply(MatInterpolate(c(tw[j], ti, tw[j + 1]), a[[j]], a[[j + 1]]), 
+        bmat[, rep(g, each = adim)] <- (apply(MatInterpolate(c(tw[j], t[g], tw[j + 1]), a[[j]], a[[j + 1]]), 
             3, dekomp))
     }
     
     if (stack) {
-        bmat <- bmat[, as.vector(t(matrix(1:(adim * length(t)), nr = adim)))]
+        bmat <- bmat[, as.numeric(t(matrix(1:(adim * length(t)), nr = adim)))]
         return((t(bmat) %*% bmat) * (matrix(1, nc = adim, nr = adim) %x% outer(t, t, timefunction, ...)) + 
             diag(x = noise, lt * adim))
     }
@@ -103,8 +104,13 @@ kovMat <- function(t, a, tw, timefunction, stack = TRUE, noise = 0, ...) {
 #' @rdname Tidsfunktioner
 #' 
 #' @export
+#' @seealso \link{OUproces}, \link{Brown}, \link{Maternk}
 #'
 #' @examples
+#' 
+#' t <- seq(0,1, 0.1)
+#' outer(t, t, OUtid, lambda = 1) ## OU process
+#' outer(t, t, BMtid, bridge = FALSE)
 #' 
 OUtid <- function(s, t, lambda) { ## OU process
     exp(-abs(s - t) * lambda)
@@ -121,7 +127,7 @@ OUtid <- function(s, t, lambda) { ## OU process
 #'
 #' @export
 #'
-#' @examples
+#' 
 BMtid <- function(s, t, bridge = TRUE) { ## Brown bridge/motion
     x <- pmin.int(s, t)
     if (bridge) return(x - s*t)
@@ -157,7 +163,7 @@ Matern.bro <- function(s,t, range, smooth) {
   x <- s*t
   range <-abs(s-t)/range
   range[range == 0] <- 1e-12
-  (besselK(range, smooth) * range^smooth / (gamma(smooth) *2 ^(smooth-1))) * (pmin(s, t) - x)
+  (besselK(range, smooth) * range^smooth / (gamma(smooth) *2 ^(smooth-1))) * (pmin.int(s, t) - x)
 }
 
 

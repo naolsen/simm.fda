@@ -14,3 +14,8 @@ See also the related package pavpop: http://github.com/larslau/pavpop and take a
 
 Since the first work was done, we have extended the model to include (univariate) functional data, where there the observations are modeled using exponential families. Currently supported are Negative Binomial and Poisson families, but others can easily be defined by the user.
 Please see https://doi.org/10.1371/journal.pone.0215914. Preprint: https://arxiv.org/abs/1811.04446.
+
+
+# Installation 
+The recommended way is to use the devtools package, e.g. run `devtools::install_github("naolsen/simm.fda")` from the R interface.
+As the package is only based on R code, no special compilers are needed. 

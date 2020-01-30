@@ -29,7 +29,7 @@ dekomp <- function(Y) {
 #' @details a1 and a2 should have same size. This is NOT checked.
 #' @return A three-dimensional array of interpolated matrices
 #' @export
-#' @seealso kovMat
+#' @seealso \link{kovMat}
 #'  
 #' @examples A1 <- matrix(c(2,1,0,1,2,0.5, 0, 0.5, 2), 3, 3)
 #' A2 <- diag(3)

@@ -4,16 +4,6 @@
 ## t_n, and { n+1, ..., 2n } refers to the second response observed at t_1, ..., t_n etc.
 
 
-
-## New function for minimum. Actually equal to pmin, but MUCH faster. Update: pmin.int can do the same
-minFkt <- function(s, t) {
-    x <- s > t
-    x * t + (s * (!x))
-}
-
-
-
-
 #' Brownian motion and Brownian bridge
 #'
 #' @param t time points
@@ -24,12 +14,14 @@ minFkt <- function(s, t) {
 #' @export
 #'
 #' @examples
+#' t <- seq(0,1 , 0.01)
+#' Brown(t, c(0.1, 0.001), TRUE)
 Brown <- function(t, par = c(tau = 1, noise = 1), motion = FALSE) {
-    S <- outer(t, t, minFkt)
-    if (!motion) 
-        S <- S - outer(t, t)
-    
-    S * par[1] + diag(x = par[2], nrow = length(t))
+  S <- outer(t, t, pmin.int)
+  if (!motion) 
+    S <- S - outer(t, t)
+  
+  S * par[1] + diag(x = par[2], nrow = length(t))
 }
 
 ## Matern
@@ -38,7 +30,7 @@ Brown <- function(t, par = c(tau = 1, noise = 1), motion = FALSE) {
 #' @param t time points
 #' @param par parameters
 #' 
-#' @details Note that function follows a slightly different parametrization than conventionally used. 
+#' @details Note that this function follows a slightly different parametrization than conventionally used. 
 #'
 #' @return Covariance matrix for Matern covariance
 #' @export
@@ -65,7 +57,7 @@ poly.Matern.kov <- function( t, sig, range =1, smooth=200, koef2) {
   S[S == 0] <- 1e-12
   #(besselK(S, glat) * S^glat / (gamma(glat) *2 ^(glat-1))) *  (1+koef2*(outer(t,t, minFkt) - outer(t, t))) + diag(l)*par[3]
   sig %x% ((besselK(S, glat) * S^glat / (gamma(glat) *2 ^(glat-1))) *  
-         (1+koef2*(outer(t,t, minFkt) - outer(t, t)))) +  diag(x = 1,   l*nrow(sig))
+             (1+koef2*(outer(t,t, pmin.int) - outer(t, t)))) +  diag(x = 1,   l*nrow(sig))
   
 }
 
@@ -82,10 +74,10 @@ poly.Matern.kov <- function( t, sig, range =1, smooth=200, koef2) {
 #'
 #' @examples
 OUproces <- function(t, par = c(lambda = 1, noise = 0)) {
-    S <- outer(t, t, FUN = function(x, y) {
-        abs(x - y)
-    })
-    exp(-par[1] * S) + diag(par[2], length(t))
+  S <- outer(t, t, FUN = function(x, y) {
+    abs(x - y)
+  })
+  exp(-par[1] * S) + diag(par[2], length(t))
 }
 
 
@@ -103,14 +95,14 @@ OUproces <- function(t, par = c(lambda = 1, noise = 0)) {
 #'
 #' @examples
 mvOUproces <- function(t, lambda = 1, sig, noise = 0) {
-    S <- outer(t, t, FUN = function(x, y) {
-        abs(x - y)
-    })
-    sig %x% (exp(-lambda * S)) + diag(x = rep(noise, each = length(t)))
+  S <- outer(t, t, FUN = function(x, y) {
+    abs(x - y)
+  })
+  sig %x% (exp(-lambda * S)) + diag(x = rep(noise, each = length(t)))
 }
 
 mvBrown <- function(t, tau = 1, sig, noise = 0, motion = FALSE) {
-    sig %x% Brown(t, par = c(tau, 0), motion) + diag(x = rep(noise, each = length(t)))
+  sig %x% Brown(t, par = c(tau, 0), motion) + diag(x = rep(noise, each = length(t)))
 }
 
 
@@ -125,10 +117,8 @@ mvBrown <- function(t, tau = 1, sig, noise = 0, motion = FALSE) {
 #'
 #' @return
 #' @export
-#'
-#' @examples
 #' 
-mvMatern <- function( t, range =1, smooth=2, noise = 1, sig)  {
+mvMatern <- function(t, range =1, smooth=2, noise = 1, sig)  {
   sig %x% Maternk(t, c(range, smooth, 0)) +  diag(x = rep(noise, each = length(t)))
 }
 
@@ -138,14 +128,14 @@ mvMatern <- function( t, range =1, smooth=2, noise = 1, sig)  {
 ## wrapper for multivariat Brownsk bro. Bruger nedre trekantsmatrix i Cholesky dekompositionen
 ## Skalaparameteren par[1] er redundant.
 BBwrapper <- function(t, par) {
-    pa <- matrix(c(par[2], par[5], par[6], 0, par[3], par[7], 0, 0, par[4]), nrow = 3)
-    mvBrown(t, par[1], pa %*% t(pa), c(1, 1, 1), motion = FALSE)
+  pa <- matrix(c(par[2], par[5], par[6], 0, par[3], par[7], 0, 0, par[4]), nrow = 3)
+  mvBrown(t, par[1], pa %*% t(pa), c(1, 1, 1), motion = FALSE)
 }
 
 ## Multivariat OU proces
 mvOUwrapper <- function(t, par) {
-    pa <- matrix(c(par[2], par[5], par[6], 0, par[3], par[7], 0, 0, par[4]), nrow = 3)
-    mvOUproces(t, par[1], pa %*% t(pa), c(1, 1, 1))
+  pa <- matrix(c(par[2], par[5], par[6], 0, par[3], par[7], 0, 0, par[4]), nrow = 3)
+  mvOUproces(t, par[1], pa %*% t(pa), c(1, 1, 1))
 } 
 
 
@@ -157,7 +147,7 @@ c.mv.BM <- function(t,  par, motion = TRUE) {
   s <- length(t)
   z <- list()
   
-  S <- outer(t, t, minFkt)
+  S <- outer(t, t, pmin.int)
   if (!motion)     S <- S - outer(t, t)
   for (i in 1:length(par)) z[[i]] <- chol(S*par[i] + diag(s))
   bdiag(z)
@@ -203,5 +193,3 @@ diag_covariance <- function(t, par) {
 attr(diag_covariance, "inv_cov_fct") <- function(t, par) {
   Diagonal(x = rep(1/par, each = length(t)))
 }
-
-  

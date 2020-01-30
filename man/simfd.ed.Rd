@@ -4,12 +4,11 @@
 \alias{simfd.ed}
 \title{Simultaneous inference for misaligned functional data in an exponential family setting}
 \usage{
-simfd.ed(y, t, basis_fct, warp_fct, ed_fct, amp_cov = NULL,
-  warp_cov = NULL, iter = c(5, 5), w0 = NULL, u0 = NULL,
-  use.nlm = c(FALSE, FALSE), suppressLik = F, amp_cov_par = NULL,
-  paramMax = rep(TRUE, length(amp_cov_par)), warp_opt = TRUE,
-  like_optim_control = list(), pr = FALSE, design = NULL,
-  inner_parallel = FALSE, save_temp = NULL)
+simfd.ed(y, t, basis_fct, warp_fct, ed_fct, amp_cov = NULL, warp_cov = NULL,
+  iter = c(5, 5), w0 = NULL, u0 = NULL, use.nlm = c(FALSE, FALSE),
+  suppressLik = F, amp_cov_par = NULL, paramMax = rep(TRUE,
+  length(amp_cov_par)), warp_opt = TRUE, like_optim_control = list(),
+  pr = FALSE, design = NULL, inner_parallel = FALSE, save_temp = NULL)
 }
 \arguments{
 \item{y}{List of observations. NAs allowed}
@@ -22,14 +21,14 @@ simfd.ed(y, t, basis_fct, warp_fct, ed_fct, amp_cov = NULL,
 
 \item{ed_fct}{Function defining the exponential family. Must have attribute diff2. See \link{Afkt} for examples.}
 
-\item{amp_cov}{Amplitude covariance function. Must be on the form function(t, param)}
+\item{amp_cov}{Amplitude covariance function. Must be on the form \code{function(t, param)}}
 
-\item{warp_cov}{Warp covariance function.}
+\item{warp_cov}{Warp covariance function. Must be on the form \code{function(t, param)}}
 
 \item{iter}{two-dimensional integer of maximal number of outer iterations &
 maximal number of inner iterations per outer iteration.}
 
-\item{w0}{Starting values for warp. Should only be used if you have results from a previous run.}
+\item{w0}{Starting values for predicted warps. Should only be used if you have results from a previous run.}
 
 \item{u0}{Starting values for predicted trajectories. Should only be used if you have results from a previous run.}
 
@@ -44,9 +43,9 @@ May be overwritten by supplying control parameters.}
 
 \item{warp_opt}{If FALSE, warp covariance parameters are kept fixed.}
 
-\item{like_optim_control}{List of control options for optimization in outer loop. See details of ZZ.}
+\item{like_optim_control}{List of control options for optimization in outer loop. See \link{ppMulti} for details.}
 
-\item{pr}{}
+\item{pr}{Printing option.}
 
 \item{design}{Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.}
 
@@ -63,4 +62,7 @@ This function applies the simm.fda methodology in a setting of certain exponenti
 \details{
 sim.fd can only handle one-dimensional functional data. It should NOT be applied to Gaussian data, unless sigma^2 is known and fixed beforehand.
 Not all relevant control parameters have been checked for compliance; however parallelization does work (on Linux)
+}
+\seealso{
+\link{ppMulti}
 }

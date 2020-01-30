@@ -10,7 +10,7 @@ likelihood.ed(param, param.w, r, Zis, A.diff2, amp_cov, warp_cov, t, tw,
 \arguments{
 \item{param}{Amplitude parameters}
 
-\item{param.w}{Variancce parameters}
+\item{param.w}{Warp covariance parameters}
 
 \item{r, Zis}{Residual vectors/matrices}
 

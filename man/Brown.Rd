@@ -19,3 +19,7 @@ Covariance matrix
 \description{
 Brownian motion and Brownian bridge
 }
+\examples{
+t <- seq(0,1 , 0.01)
+Brown(t, c(0.1, 0.001), TRUE)
+}

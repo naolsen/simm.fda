@@ -24,8 +24,8 @@
 #' @param t List of corresponding time points. NAs not allowed
 #' @param basis_fct Basis function for spline
 #' @param warp_fct Warp function
-#' @param amp_cov Amplitude covariance. Must be on the form function(t, param)
-#' @param warp_cov Warp covariance 
+#' @param amp_cov Amplitude covariance function. Must be on the form \code{function(t, param)}
+#' @param warp_cov Warp covariance function. Must be on the form \code{function(t, param)}
 #' @param iter two or three dimensional integer of maximal number of outer iterations &
 #' maximal number of inner iterations per outer iteration and optionally maximal number of em updates (default = 1).
 #' @param amp_cov_par Starting values for amplitude covariance parameters. There are no defaults.
@@ -35,10 +35,11 @@
 #' @param like_optim_control List of control options for optimization in outer loop. See details
 #' @param use.nlm Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.
 #' @param pr Printing option.
-#' @param design May not be null
+#' @param design Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.
 #' @param inner_parallel Should optimization of warps and matrices for EM algorithm be done in parallel?
 #' @param save_temp Save estimates after each outer iteration? NULL or the file path.
 #' @param w0 Starting values for warp. Should only be used if you have results from a previous run.
+#' @param w0 Starting values for spline parameters. Should only be used if you have results from a previous run.
 #' 
 #' @details There has been less check on this function, so I cannot guarantee that it will behave as well as ppMulti.
 #' Requires \code{spam} package, used for faster calculations for sparse matrices.

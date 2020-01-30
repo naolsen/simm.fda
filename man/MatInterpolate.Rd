@@ -29,5 +29,5 @@ A2
 MatInterpolate(A1, A2)
 }
 \seealso{
-kovMat
+\link{kovMat}
 }

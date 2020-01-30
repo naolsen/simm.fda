@@ -22,11 +22,11 @@
 #' @param t List of corresponding time points. NAs not allowed
 #' @param basis_fct Basis function for spline
 #' @param warp_fct Warp function
-#' @param amp_cov Amplitude covariance function. Must be on the form function(t, param)
-#' @param warp_cov Warp covariance function
+#' @param amp_cov Amplitude covariance function. Must be on the form \code{function(t, param)}
+#' @param warp_cov Warp covariance function. Must be on the form \code{function(t, param)}
 #' @param iter two-dimensional integer of maximal number of outer iterations &
 #' maximal number of inner iterations per outer iteration.
-#' @param w0 Starting values for warp. Should only be used if you have results from a previous run.
+#' @param w0 Starting values for predicted warps. Should only be used if you have results from a previous run.
 #' @param amp_cov_par Starting values for amplitude covariance parameters. There are no defaults.
 #' @param paramMax Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.
 #' May be overwritten by supplying control parameters.
@@ -38,9 +38,6 @@
 #' @param design Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.
 #' @param inner_parallel Should the inner optimization be done parallelly?
 #' @param save_temp Save estimates after each outer iteration? NULL or the file path.
-#' @param functional: Optional and experimnetal parameter that allows the user to use the experimental Functionality package. 
-#' Value should be a functional call with one optional argument(ownDeriv = ) that initializes the functional object.
-#' If ownDeriv = TRUE the native derivative of the functional object is used, otherwise finite differences are used.
 #' 
 #'
 #' @details ppMulti returns a warning if applied on one-dimensional functional data.
@@ -48,8 +45,8 @@
 #' Control parameters:
 #' 
 #' 
-#' lower, upper, method, ndeps, maxit will be sent to optim. See optim for more details. 
-#' If use.nlm is selected the optimization is performed using the nlm function. 
+#' lower, upper, method, ndeps, maxit will be sent to optim. See \link{optim} for more details. 
+#' If \code{use.nlm} is selected the optimization is performed using the \code{nlm} function. 
 #' Bounds are handled through a logit transformation. Note that the optimization will not be able to actually reach the bounds.
 #' Presently, the user cannot pass any control values to nlm.
 #' 
@@ -59,6 +56,8 @@
 #' 
 #' randomCycle and optimRule are two ways of optimizing on only a subset of the parameters at a time. These overwrites the paramMax argument.
 #' TBD: descriptions of these.
+#' 
+#' Amplitude covariance uses all time points from first observation coordinate, all time points from second observation coordinate etc.
 #' 
 #' Regarding parallelization: The user must initiate and control parallelization objects by herself. 
 #' simm.fda just calls \code{foreach} and does not provide any tools for handling parallelization objects (this is a deliberate design strategy).
@@ -115,7 +114,7 @@
 #'
 
 ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
-                    w0 = NULL, use.nlm = c(FALSE, FALSE), functional = NULL, 
+                    w0 = NULL, use.nlm = c(FALSE, FALSE), 
                     amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)),  parallel.lik = c(FALSE, FALSE), warp_opt = TRUE,
                     like_optim_control = list(), pr=FALSE, design = NULL, inner_parallel = FALSE, save_temp = NULL) {
 
@@ -200,20 +199,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
     for (i in 1:n) design[[i]] <- des[i,]
   }
   if (!is.null(design) && length(design) != n) stop("design must have same length or number of rows as the length of y.")
-  
-  ## Check if functionality package is used
-  
-  if (!is.null(functional)) {
-    require("fctbases")
-    
-    bf0 <- functional()
-    basis_fct <- setup.functional.basis(bf0, t[[1]][1], isTRUE(formals(functional)$ownDeriv))
-    
-    on.exit({ ## Close connection after use.
-      cat("\n Closing connection. ")
-      fctbases::removeMember(bf0)
-    })
-    }
+
   
   
   # Build amplitude covariances and inverse covariances
@@ -290,8 +276,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         # Parallel prediction of warping parameters
           gr <- NULL
           w_res <- list()
-          if (inner_parallel && !is.null(functional))  stop("functional && inner_parallel does not work together!")
-        
+
           if (inner_parallel)  w_res <- 
               foreach(i = 1:n, Sinvi = Sinv, yi = y, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis", "dwarp")) %dopar% {
 
@@ -756,7 +741,7 @@ pavpop_returner_zogr.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, w
 #' @export
 #'
 ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
-                    w0 = NULL, use.nlm = c(FALSE, FALSE), functional = NULL, 
+                    w0 = NULL, use.nlm = c(FALSE, FALSE), 
                     amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)),  parallel.lik = c(FALSE, FALSE), warp_opt = TRUE,
                     like_optim_control = list(), pr=FALSE, design = NULL, inner_parallel = FALSE, save_temp = NULL) {
   
@@ -843,21 +828,6 @@ ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
   }
   if (!is.null(design) && length(design) != n) stop("design must have same length or number of rows as the length of y.")
   
-  ## Check if functionality package is used
-  
-  if (!is.null(functional)) {
-    require("fctbases")
-    
-    bf0 <- functional()
-    basis_fct <- setup.functional.basis(bf0, t[[1]][1], isTRUE(formals(functional)$ownDeriv))
-    
-    on.exit({ ## Close connection after use.
-      cat("\n Closing connection. ")
-      fctbases::removeMember(bf0)
-    })
-  }
-  
-  
   # Build amplitude covariances and inverse covariances
   if (is.null(amp_cov)) amp_cov <- diag_covariance
   
@@ -932,8 +902,7 @@ ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         # Parallel prediction of warping parameters
         gr <- NULL
         w_res <- list()
-        if (inner_parallel && !is.null(functional))  stop("functional && inner_parallel does not work together!")
-        
+
         if (inner_parallel)  w_res <- 
           foreach(i = 1:n, Sinvi = Sinv, yi = y, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis", "dwarp")) %dopar% {
             
@@ -1219,51 +1188,4 @@ likelihood.lap <- function(param, param.w, r, w, Zis, amp_cov, warp_cov, t, tw, 
   return(min(res, 1e10))
   
 }
-
-
-init.ppmulti <- expression({
-  nouter <- iter[1] + 1
-  if (is.null(amp_cov) && is.null(warp_cov)) nouter <- 1
-  ninner <- iter[2]
-  halt_iteration <- FALSE
-  # Set size parameters
-  n <- length(y)
-  m <- sapply(y, nrow)
-  K <- ncol(y[[1]])
-  if (ncol(y[[1]]) == 1) warning("simm.fda cannot be expected to work on one-dimensional curves.")
-  homeomorphisms <- 'soft'
-  if (is.null(save_temp)) gem.tmp <- F
-  else {
-    gem.tmp <- T
-    if (!is.character(save_temp)) stop("save_temp must be either NULL or a specified file location")
-  }
-  
-  if (length(t) != n) stop("y and t must have same length.")
-  if (!all(sapply(t, length) == m)) stop("Observations in y and t must have same length.")
-  
-  
-  # Remove missing values
-  for (i in 1:n) {
-    missing_indices <- is.na(y[[i]][,1])
-    y[[i]] <- y[[i]][!missing_indices, , drop = FALSE] ##Skal være matricer aht. senere
-    t[[i]] <- t[[i]][!missing_indices]
-  }
-  
-  t_warped <- t  # Stored warped time
-  m <- sapply(y, nrow) # Update m with cleaned data
-  
-  
-  cis <- list() ## For designs
-  
-  # Design part. If matrix, convert to list
-  if (is.matrix(design)) {
-    des <- design
-    design <- list()
-    for (i in 1:n) design[[i]] <- des[i,]
-  }
-  if (!is.null(design) && length(design) != n) stop("design must have same length or number of rows as the length of y.")
-  
-  
-})
-
 

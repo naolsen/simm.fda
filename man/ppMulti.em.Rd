@@ -21,9 +21,9 @@ ppMulti.em(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
 
 \item{warp_fct}{Warp function}
 
-\item{amp_cov}{Amplitude covariance. Must be on the form function(t, param)}
+\item{amp_cov}{Amplitude covariance function. Must be on the form \code{function(t, param)}}
 
-\item{warp_cov}{Warp covariance}
+\item{warp_cov}{Warp covariance function. Must be on the form \code{function(t, param)}}
 
 \item{iter}{two or three dimensional integer of maximal number of outer iterations &
 maximal number of inner iterations per outer iteration and optionally maximal number of em updates (default = 1).}
@@ -42,13 +42,13 @@ maximal number of inner iterations per outer iteration and optionally maximal nu
 
 \item{pr}{Printing option.}
 
-\item{design}{May not be null}
+\item{design}{Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.}
 
 \item{inner_parallel}{Should optimization of warps and matrices for EM algorithm be done in parallel?}
 
 \item{save_temp}{Save estimates after each outer iteration? NULL or the file path.}
 
-\item{w0}{Starting values for warp. Should only be used if you have results from a previous run.}
+\item{w0}{Starting values for spline parameters. Should only be used if you have results from a previous run.}
 }
 \value{
 A list of estimates
@@ -66,7 +66,7 @@ Results are combined in order they are returned by worker threads. Due to numeri
 Also note that parallelization doesn't always work on Windows. (Use Linux if possible)
 }
 \examples{
-See \\link{ppMulti}
+See \link{ppMulti}
 }
 \seealso{
 \link{ppMulti}

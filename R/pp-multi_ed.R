@@ -7,7 +7,7 @@
 #' Likelihood in ED models
 #'
 #' @param param Amplitude parameters
-#' @param param.w Variancce parameters
+#' @param param.w Warp covariance parameters
 #' @param r,Zis Residual vectors/matrices
 #' @param A.diff2 2nd derivative for exponential family
 #' @param amp_cov 
@@ -85,11 +85,11 @@ posterior.lik_w <- posterior.lik
 #' @param basis_fct Basis function for spline
 #' @param warp_fct Warp function
 #' @param ed_fct Function defining the exponential family. Must have attribute diff2. See \link{Afkt} for examples.
-#' @param amp_cov Amplitude covariance function. Must be on the form function(t, param)
-#' @param warp_cov Warp covariance function.
+#' @param amp_cov Amplitude covariance function. Must be on the form \code{function(t, param)}
+#' @param warp_cov Warp covariance function. Must be on the form \code{function(t, param)}
 #' @param iter two-dimensional integer of maximal number of outer iterations &
 #' maximal number of inner iterations per outer iteration.
-#' @param w0 Starting values for warp. Should only be used if you have results from a previous run.
+#' @param w0 Starting values for predicted warps. Should only be used if you have results from a previous run.
 #' @param u0 Starting values for predicted trajectories. Should only be used if you have results from a previous run. 
 #' @param use.nlm se \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.
 #' @param suppressLik Suppress if likelihood has increased
@@ -97,8 +97,8 @@ posterior.lik_w <- posterior.lik
 #' @param paramMax Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.
 #' May be overwritten by supplying control parameters.
 #' @param warp_opt If FALSE, warp covariance parameters are kept fixed. 
-#' @param like_optim_control  List of control options for optimization in outer loop. See details of ZZ.
-#' @param pr 
+#' @param like_optim_control  List of control options for optimization in outer loop. See \link{ppMulti} for details.
+#' @param pr Printing option.
 #' @param design Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.
 #' @param inner_parallel  Should the inner optimization be done parallelly?
 #' @param save_temp  Save estimates after each outer iteration? NULL or the file path.
@@ -110,6 +110,8 @@ posterior.lik_w <- posterior.lik
 #'
 #' @return A list of estimates and predictions of w and u
 #' @export
+#'
+#' @seealso \link{ppMulti}
 #'
 simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
                        w0 = NULL, u0 = NULL, use.nlm = c(FALSE, FALSE), suppressLik = F,

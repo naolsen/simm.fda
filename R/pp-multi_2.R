@@ -190,10 +190,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   # Update m with cleaned data
   m <- sapply(y, nrow)
   
-  t_warped <- t  # Stored warped time
-  m <- sapply(y, nrow) # Update m with cleaned data
-  
-  
   # Design part. If matrix, convert to list
   if (is.matrix(design)) {
     des <- design
@@ -421,7 +417,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
       if (use.nlm[1]) {  ## nlm optimization
         steptol <- if (is.null(like_optim_control$steptol)) 1e-6 else like_optim_control$steptol
-        like_optim <- nlm.bound.xx(fct = like_fct , p = paras, lower = lower0, upper = upper0, init = TRUE, symmetric = TRUE, iterlim = maxit)
+        like_optim <- nlm.bound(fct = like_fct , p = paras, lower = lower0, upper = upper0, init = TRUE, symmetric = TRUE, iterlim = maxit)
         param <- like_optim$estimate
         like_optim$value <- like_optim$minimum
       }
@@ -743,11 +739,11 @@ pavpop_returner_zogr.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, w
 #' @export
 #'
 ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
-                    w0 = NULL, use.nlm = c(FALSE, FALSE), 
-                    amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)),  parallel.lik = c(FALSE, FALSE), warp_opt = TRUE,
-                    like_optim_control = list(), pr=FALSE, design = NULL, inner_parallel = FALSE, save_temp = NULL) {
+                       w0 = NULL, use.nlm = c(FALSE, FALSE), 
+                       amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)),  parallel.lik = c(FALSE, FALSE), warp_opt = TRUE,
+                       like_optim_control = list(), pr=FALSE, design = NULL, inner_parallel = FALSE, save_temp = NULL) {
   
-  ## Opsætnings-ting
+  ## Ops�tnings-ting
   
   nouter <- iter[1] + 1
   if (is.null(amp_cov) & is.null(warp_cov)) nouter <- 1
@@ -758,7 +754,6 @@ ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
   m <- sapply(y, nrow)
   K <- ncol(y[[1]])
   if (ncol(y[[1]]) == 1) warning("simm.fda cannot be expected to work on one-dimensional curves.")
-  homeomorphisms <- 'soft'
   if (is.null(save_temp)) gem.tmp <- F
   else {
     gem.tmp <- T
@@ -779,7 +774,6 @@ ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
   mw <- attr(warp_fct, 'mw')
   if (all(is.na(tw))) tw <- rep(tw, mw)
   warp_type <- attr(warp_fct, 'type')
-  if (warp_type != 'piecewise linear' & warp_type != 'smooth') homeomorphisms <- 'no'
   if (warp_type == 'identity') warp_cov <- NULL
   
   
@@ -804,21 +798,22 @@ ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
   if (!is.null(like_optim_control$lower) && length(like_optim_control$lower) > 1 && length(like_optim_control$lower) != n_par_amp + n_par_warp)
     warning("Mismatch between number of parameters and number of limits supplied! Problems may occur")
   
-  # Check for same data structures of y and t
-  if (length(t) != n) stop("y and t must have same length.")
-  if (!all(sapply(t, length) == m)) stop("Observations in y and t must have same length.")
-  
-  
+  # Check for correct data structures of y and t
   # Remove missing values
+  if (length(t) != n) stop("y and t must have same length.")
+  m <- sapply(y, nrow)
   for (i in 1:n) {
+    if (!is.matrix(y[[i]])) stop("Observations in y must be matrices!")
+    if (length(t[[i]]) != m[i]) stop("Observations in y and t must have same length.")
     missing_indices <- is.na(y[[i]][,1])
-    y[[i]] <- y[[i]][!missing_indices, , drop = FALSE] ##Skal være matricer aht. senere
+    y[[i]] <- y[[i]][!missing_indices, , drop = FALSE]
     t[[i]] <- t[[i]][!missing_indices]
   }
   
-  t_warped <- t  # Stored warped time
-  m <- sapply(y, nrow) # Update m with cleaned data
-  
+  # Stored warped time
+  t_warped <- t
+  # Update m with cleaned data
+  m <- sapply(y, nrow)
   
   cis <- list() ## For designs
   
@@ -904,7 +899,7 @@ ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         # Parallel prediction of warping parameters
         gr <- NULL
         w_res <- list()
-
+        
         if (inner_parallel)  w_res <- 
           foreach(i = 1:n, Sinvi = Sinv, yi = y, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis", "dwarp")) %dopar% {
             
@@ -914,7 +909,6 @@ ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
             if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
             else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
             
-            if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
             return(ww)
           }
         else for ( i in 1:n) {
@@ -925,7 +919,6 @@ ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
           if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
           else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
           
-          if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
           w_res[[i]] <- ww
         }
         
@@ -1073,7 +1066,7 @@ ppMulti.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       
       if (use.nlm[1]) {  ## nlm optimization
         steptol <- if (is.null(like_optim_control$steptol)) 1e-6 else like_optim_control$steptol
-        like_optim <- nlm.bound.xx(fct = like_fct , p = paras, lower = lower0, upper = upper0, init = TRUE, symmetric = TRUE, iterlim = maxit)
+        like_optim <- nlm.bound(fct = like_fct , p = paras, lower = lower0, upper = upper0, iterlim = maxit)
         param <- like_optim$estimate
         like_optim$value <- like_optim$minimum
       }

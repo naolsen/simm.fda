@@ -62,8 +62,9 @@ ppMulti returns a warning if applied on one-dimensional functional data.
 
 Control parameters:
 
+\code{lower}, \code{upper}, method, ndeps, maxit will be sent to optim. The first indices in lower/upper are warp parameter bounds.
+#' See \link{optim} for more details. 
 
-lower, upper, method, ndeps, maxit will be sent to optim. See \link{optim} for more details. 
 If \code{use.nlm} is selected the optimization is performed using the \code{nlm} function. 
 Bounds are handled through a logit transformation. Note that the optimization will not be able to actually reach the bounds.
 Presently, the user cannot pass any control values to nlm.

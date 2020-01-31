@@ -26,3 +26,5 @@ I will do my best to ensure all changes are included here
 09-06-19: Update. Various new new elements, in particular support for exponential families which can be used with discrete observations (simfd.ed). Basis functions now also support Natural cubic splines.
 
 30-01-2020: Small cleanup and removal of "functionality" feature.
+31-01-2020: Continued cleanup and removal of unused features. ppMulti now checks if input data consists of matrices. 
+

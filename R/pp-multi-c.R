@@ -116,7 +116,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
   # Remove missing values
   for (i in 1:n) {
     missing_indices <- is.na(y[[i]][,1])
-    y[[i]] <- y[[i]][!missing_indices, , drop = FALSE] # Skal vÃ¦re matricer aht. senere
+    y[[i]] <- y[[i]][!missing_indices, , drop = FALSE] 
     t[[i]] <- t[[i]][!missing_indices]
     #yvek[[i]] <- unlist(y[[i]])
     #tvek[[i]] <- rep(t[[i]], K)
@@ -153,7 +153,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       Sinv[[i]] <- chol2inv(S.chol[[i]])
     }
   }
-  ## At gÃ¸re: KombinÃ©r S.chol med inv_amp om muligt
+  ## At gøre: Kombinér S.chol med inv_amp om muligt
   
   # Build warp covariance and inverse
   if (!is.null(warp_cov)) {
@@ -163,7 +163,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
     C <- Cinv <- matrix(0, mw, mw)
   }
   
-
+  
   # First estimate of  spline weights
   
   cis <- list() ## For designs  
@@ -210,10 +210,10 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       # Predict warping parameters for all functional samples
       warp_change <- c(0, 0)
       w_res <- list()
-
+      
       if (T) {
         
-      if (inner_parallel[1])  w_res <- ## Parallell prediction of warping parameters
+        if (inner_parallel[1])  w_res <- ## Parallell prediction of warping parameters
           foreach(i = 1:n, Sinvi = Sinv, yi = y, tid = t, .noexport = c("Sinv", "S", "S.chol", "y", "t", "r", "Zis", "cis", "dwarp")) %dopar% {
             #if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
             #else cis[[i]] <- c 
@@ -237,15 +237,15 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
           if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
           w_res[[i]] <- ww
           
-        #eval(RZ.ting) 
-      }
-      
-      for (i in 1:n) {
-        warp_change[1] <- warp_change[1] + sum((w[, i] - w_res[[i]])^2)
-        warp_change[2] <- max(warp_change[1], abs(w[, i] -  w_res[[i]]))
-        w[, i] <- w_res[[i]]
-      }
-      
+          #eval(RZ.ting) 
+        }
+        
+        for (i in 1:n) {
+          warp_change[1] <- warp_change[1] + sum((w[, i] - w_res[[i]])^2)
+          warp_change[2] <- max(warp_change[1], abs(w[, i] -  w_res[[i]]))
+          w[, i] <- w_res[[i]]
+        }
+        
       }
       
       
@@ -257,12 +257,11 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       
       ## Em algorithm stuff
       for (i.em in 1:em.iter) {
-      
-      if (i.em != em.iter) 
-        for (i in 1:n) eval(RZ.ting) 
+        
+      if (i.em != em.iter) for (i in 1:n) eval(RZ.ting) 
         
       # Update spline weights
-
+      
       no.c <- length(c)
       sigma <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=T)
       west <- w
@@ -287,7 +286,6 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         
         #warpt <- t_warped[[i]]
         #Ri <- list()
-        #R <- as.spam(t(design[[i]]) %x% diag(K)) %x% as.spam(bf(warpt))
         R <- as.spam(t(design[[i]])) %x% diag.spam(K) %x% as.spam(bf(warpt))
         
         #wd <- dwarp[[i]]
@@ -334,8 +332,8 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
           warpt <- t_warped[[i]]
           yi <- y[[i]]
           Amatt <- Amatt + eval(EM.expr)
+          }
         }
-      }
       ## Ensure positive definiteness of zero-parts:
       diag(Amatt[, 1:no.c])[ diag(Amatt[, 1:no.c]) == 0] <- 1
       c.ny <- tryCatch({
@@ -345,14 +343,14 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         warning("precision matrix in EM algorithm was numerically not positive ")
         solve((Amatt[, 1:no.c]), Amatt[, no.c + 1])
       })
-      
-      #c.ny <- solve((Amatt[, 1:no.c]), Amatt[, no.c + 1])
-      if (pr) print(matrix(c.ny, nr = nrow(c)))
-      c <- matrix(c.ny, nr = nrow(c), nc = ncol(c))
+        
+        #c.ny <- solve((Amatt[, 1:no.c]), Amatt[, no.c + 1])
+        if (pr) print(matrix(c.ny, nr = nrow(c)))
+        c <- matrix(c.ny, nr = nrow(c), nc = ncol(c))
       }
       
       if (warp_change[2] < 1e-2 / sqrt(mw)) break #Flyttet
-
+      
     }
     for (i in 1:n)  eval(RZ.ting) 
     
@@ -395,9 +393,9 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         likelihood(par, param.w, r = r, Zis = Zis, amp_cov = amp_cov, warp_cov = warp_cov, t = t, tw = tw, pr = pr)
         
       } else like_fct <- function(pars) {
-          par <- amp_cov_par
-          par[par1]<- pars
-          like.S(par, r = r, amp_cov = amp_cov, t = t, pr = pr)
+        par <- amp_cov_par
+        par[par1]<- pars
+        like.S(par, r = r, amp_cov = amp_cov, t = t, pr = pr)
       }
       
       # Likelihood gradient
@@ -443,7 +441,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       
       if (use.nlm[1]) {  ## nlm optimization
         steptol <- if (is.null(like_optim_control$steptol)) 1e-6 else like_optim_control$steptol
-        like_optim <- nlm.bound.xx(fct = like_fct , p = paras, lower = lower0, upper = upper0, init = TRUE, symmetric = TRUE, iterlim = maxit)
+        like_optim <- nlm.bound(fct = like_fct , p = paras, lower = lower0, upper = upper0, iterlim = maxit)
         param <- like_optim$estimate
         like_optim$value <- like_optim$minimum
       }
@@ -465,7 +463,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         c_best <- c
         amp_cov_par_best <- amp_cov_par
         warp_cov_par_best <- warp_cov_par
-
+        
         cat(':\t', param, '\n')
         cat('Linearized likelihood:\t', like_best, '\n')
         if (gem.tmp) {
@@ -565,7 +563,7 @@ pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp
   K <- ncol(y[[1]])
   
   homeomorphisms <- 'soft'
-
+  
   
   
   # Warp parameters
@@ -692,7 +690,7 @@ pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp
       for (iinner in 1:iter) {
         # Inner loop
         cat(iinner, '\t')
-        
+      
         # Predict warping parameters for all functional samples
         warp_change <- c(0, 0)
         if (homeomorphisms == 'hard') {
@@ -741,30 +739,27 @@ pavpop_returner_zogr <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp
           c <- splw(y, t, warp_fct, w, Sinv, basis_fct, K = K)
         } else {
           c <- (splw.d(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design))
-        }
-        
-        
-        
-        if (warp_change[2] < 1e-2 / sqrt(mw)) break 
-        
       }
-    
-    ### Outer loop part. 
-    
-    ## Construct residual vector for given warp prediction
-    
-    Zis <- list()
-    r <- y
-    
-    for (i in 1:n)  eval(RZ.ting) 
-    
-    w_best <- w
-    c_best <- c
-    
-    if(eval_likelihood) {
-      sigma <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=T)
-      like_best <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=F)
-    } 
+      
+      if (warp_change[2] < 1e-2 / sqrt(mw)) break 
+    }
+  
+  ### Outer loop part. 
+  
+  ## Construct residual vector for given warp prediction
+  
+  Zis <- list()
+  r <- y
+  
+  for (i in 1:n)  eval(RZ.ting) 
+  
+  w_best <- w
+  c_best <- c
+  
+  if(eval_likelihood) {
+    sigma <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=T)
+    like_best <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=F)
+  } 
   return(list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, warp_cov_par = warp_cov_par_best, sigma = sigma, like = like_best, Zis = Zis, r = r))
 }
 

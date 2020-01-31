@@ -44,8 +44,9 @@
 #' 
 #' Control parameters:
 #' 
+#' \code{lower}, \code{upper}, method, ndeps, maxit will be sent to optim. The first indices in lower/upper are warp parameter bounds.
+#' #' See \link{optim} for more details. 
 #' 
-#' lower, upper, method, ndeps, maxit will be sent to optim. See \link{optim} for more details. 
 #' If \code{use.nlm} is selected the optimization is performed using the \code{nlm} function. 
 #' Bounds are handled through a logit transformation. Note that the optimization will not be able to actually reach the bounds.
 #' Presently, the user cannot pass any control values to nlm.
@@ -120,22 +121,20 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
 
   ## Opsætnings-ting
   
-    nouter <- iter[1] + 1
+  nouter <- iter[1] + 1
   if (is.null(amp_cov) & is.null(warp_cov)) nouter <- 1
   ninner <- iter[2]
   halt_iteration <- FALSE
-  # Set size parameters
+  # Get size parameters
   n <- length(y)
-  m <- sapply(y, nrow)
   K <- ncol(y[[1]])
   if (ncol(y[[1]]) == 1) warning("simm.fda cannot be expected to work on one-dimensional curves.")
-  homeomorphisms <- 'soft'
   if (is.null(save_temp)) gem.tmp <- F
   else {
     gem.tmp <- T
     if (!is.character(save_temp)) stop("save_temp must be either NULL or a specified file location")
   }
-
+  
   
   if(parallel.lik[1]) {
     print("Using parallelized likelihood")
@@ -149,7 +148,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   mw <- attr(warp_fct, 'mw')
   if (all(is.na(tw))) tw <- rep(tw, mw)
   warp_type <- attr(warp_fct, 'type')
-  if (warp_type != 'piecewise linear' & warp_type != 'smooth') homeomorphisms <- 'no'
   if (warp_type == 'identity') warp_cov <- NULL
   
   
@@ -174,23 +172,27 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   if (!is.null(like_optim_control$lower) && length(like_optim_control$lower) > 1 && length(like_optim_control$lower) != n_par_amp + n_par_warp)
     warning("Mismatch between number of parameters and number of limits supplied! Problems may occur")
   
-  # Check for same data structures of y and t
-  if (length(t) != n) stop("y and t must have same length.")
-  if (!all(sapply(t, length) == m)) stop("Observations in y and t must have same length.")
   
-  
+  # Check for correct data structures of y and t
   # Remove missing values
+  if (length(t) != n) stop("y and t must have same length.")
+  m <- sapply(y, nrow)
   for (i in 1:n) {
+    if (!is.matrix(y[[i]])) stop("Observations in y must be matrices!")
+    if (length(t[[i]]) != m[i]) stop("Observations in y and t must have same length.")
     missing_indices <- is.na(y[[i]][,1])
-    y[[i]] <- y[[i]][!missing_indices, , drop = FALSE] # Skal være matricer aht. senere
+    y[[i]] <- y[[i]][!missing_indices, , drop = FALSE]
     t[[i]] <- t[[i]][!missing_indices]
   }
- 
+  
+  # Stored warped time
+  t_warped <- t
+  # Update m with cleaned data
+  m <- sapply(y, nrow)
+  
   t_warped <- t  # Stored warped time
   m <- sapply(y, nrow) # Update m with cleaned data
   
-  
-  cis <- list() ## For designs
   
   # Design part. If matrix, convert to list
   if (is.matrix(design)) {
@@ -199,7 +201,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
     for (i in 1:n) design[[i]] <- des[i,]
   }
   if (!is.null(design) && length(design) != n) stop("design must have same length or number of rows as the length of y.")
-
+  cis <- list() 
   
   
   # Build amplitude covariances and inverse covariances

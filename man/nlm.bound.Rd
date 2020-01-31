@@ -21,10 +21,11 @@ nlm.bound(fct, p, lower, upper, ...)
 output from nlm, but with estimates transformed back.
 }
 \description{
-Performs bounded non-linear minimization using the fast but unconstrained nlm optimizer.
+Performs bounded (box-constrained) non-linear minimization using the fast but unconstrained \code{nlm} optimizer. 
+This function is in many cases been faster than box-constrained optimization using \link{optim}.
 }
 \details{
-nlm.bound doesn't check validity of bounds, but does check if starting values satisfy the constraints.
+nlm.bound doesn't check validity of the bounds, but does check if starting values satisfy the constraints.
 If any starting value is not strictly between its prescribed bounds, it is adjusted with a warning.
 }
 \seealso{

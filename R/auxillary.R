@@ -394,3 +394,63 @@ create.poisson <- function() {
 } 
 
 
+
+# c er matrix. Ens med men hurtigere end posterior2
+
+#' Posterior likelihood 
+#' 
+#' @description Calculates the posterior likelihood for a single curve.
+#'
+#' @param w Warp values
+#' @param warp_fct Warp function
+#' @param t time points
+#' @param y observations
+#' @param basis_fct 
+#' @param c matrix of spline coefficients
+#' @param Sinv Precision matrix for amplitude
+#' @param Cinv Precision matrix for w
+#'
+#' @return Value of posterior likelihood
+#' @export
+#'
+posterior.lik <- function(w, warp_fct, t, y, basis_fct, c, Sinv, Cinv) {
+  vt <- warp_fct(w, t)
+  basis <- basis_fct(vt)
+  r <- as.numeric(y - basis %*% c)
+  return((t(r) %*% Sinv %*% r + t(w) %*% Cinv %*% w)[1])
+}
+
+
+
+## Used when no warp is given
+like.S <- function(param,  r, amp_cov,  t,  sig=F, pr = F) {
+  
+  
+  n <- length(r)
+  m <- sapply(r, length)
+  
+  sq <- logdet <- 0
+  for (i in 1:n) {
+    if (!is.null(amp_cov)) {
+      S <- amp_cov(t[[i]], param)
+      # U <- chol(S)
+      # HANDLE ERRORS:
+      U <- tryCatch(chol(S), error = function(e) chol(S + diag(1e-5, m[i])))
+    } else {
+      S <- U <- diag(1, m[i])
+    }
+    rr <- as.numeric(r[[i]])
+    
+    sq <- sq +sum(backsolve(U, rr, transpose = TRUE)^2)
+    logdet_tmp <- 0
+    logdet <- logdet - (logdet_tmp - 2 * sum(log(diag(U))))
+  }
+  if (!is.null(warp_cov)) logdet <- logdet 
+  
+  sigmahat <- as.numeric(sq /sum(m))
+  res <- sum(m) * log(sigmahat) + logdet
+  if (sig) return (sqrt(sigmahat))
+  if (pr)  print(res)
+  return(min(res, 1e10))
+  
+}

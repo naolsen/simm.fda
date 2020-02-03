@@ -284,7 +284,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
                 if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
                 else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
                 
-                if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
                 return(ww)
               }
           else for ( i in 1:n) {
@@ -295,7 +294,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
               if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
               else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
               
-              if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
               w_res[[i]] <- ww
             }
             
@@ -417,7 +415,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
       if (use.nlm[1]) {  ## nlm optimization
         steptol <- if (is.null(like_optim_control$steptol)) 1e-6 else like_optim_control$steptol
-        like_optim <- nlm.bound(fct = like_fct , p = paras, lower = lower0, upper = upper0, init = TRUE, symmetric = TRUE, iterlim = maxit)
+        like_optim <- nlm.bound(fct = like_fct , p = paras, lower = lower0, upper = upper0, iterlim = maxit)
         param <- like_optim$estimate
         like_optim$value <- like_optim$minimum
       }

@@ -147,19 +147,17 @@ like.par <- function (param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig=FALS
   n <- length(r)
   m <- sapply(r, length)
   
-  sqLogd <- foreach(i = 1:n, ZZ = Zis, rr = r, tid = t, .combine = '+', .noexport = c("Zis", "r", "t"),
-     .inorder = FALSE) %dopar% {
+  sqLogd <- foreach(i = 1:n, ZZ = Zis, rr = r, tid = t, .combine = '+', .noexport = c("Zis", "r", "t", "param_w"), .inorder = FALSE) %dopar% {
         if (!is.null(amp_cov)) {
           S <- amp_cov(tid, param)
-          # U <- chol(S)
-          # HANDLE ERRORS:
-          U <- tryCatch(chol(S), error = function(e) chol(S + diag(1e-5, m[i])))
+          
+          U <- tryCatch(chol(S), error = function(e) NULL)
+          if (is.null(U)) return(1e10) ## Exception handling;
         } else {
-            S <- U <- diag(1, m[i])
+          S <- U <- diag(1, m[i])
         }
-       
-        rr <- as.numeric(rr)
         
+        rr <- as.numeric(rr)
         if (!is.null(warp_cov)) {
           A <- backsolve(U, backsolve(U, ZZ, transpose = TRUE))
           LR <- chol2inv(chol(Cinv + Matrix::t(ZZ) %*% A))
@@ -168,10 +166,10 @@ like.par <- function (param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig=FALS
           LR <- x <- 0
         }
         sqq <- (sum(backsolve(U, rr, transpose = TRUE)^2) - t(x) %*% LR %*% x)
-                      
+        
         logdet_tmp <- 0
         if (!is.null(warp_cov)) logdet_tmp <- determinant(LR)$modulus[1]
-      logd <- - (logdet_tmp - 2 * sum(log(diag(U))))
+          logd <- - (logdet_tmp - 2 * sum(log(diag(U))))
       c(sqq, logd)
   }
   

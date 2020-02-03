@@ -421,7 +421,7 @@ posterior.lik <- function(w, warp_fct, t, y, basis_fct, c, Sinv, Cinv) {
 
 
 ## Used when no warp is given
-like.S <- function(param,  r, amp_cov,  t,  sig=F, pr = F) {
+like.nowarp <- function(param,  r, amp_cov,  t, sig=FALSE, pr = FALSE, ...) {
   
   
   n <- length(r)
@@ -431,9 +431,9 @@ like.S <- function(param,  r, amp_cov,  t,  sig=F, pr = F) {
   for (i in 1:n) {
     if (!is.null(amp_cov)) {
       S <- amp_cov(t[[i]], param)
-      # U <- chol(S)
-      # HANDLE ERRORS:
-      U <- tryCatch(chol(S), error = function(e) chol(S + diag(1e-5, m[i])))
+      
+      U <- tryCatch(chol(S), error = function(e) NULL)
+      if (is.null(U)) return(1e10) ## Exception handling;
     } else {
       S <- U <- diag(1, m[i])
     }
@@ -443,7 +443,6 @@ like.S <- function(param,  r, amp_cov,  t,  sig=F, pr = F) {
     logdet_tmp <- 0
     logdet <- logdet - (logdet_tmp - 2 * sum(log(diag(U))))
   }
-  if (!is.null(warp_cov)) logdet <- logdet 
   
   sigmahat <- as.numeric(sq /sum(m))
   res <- sum(m) * log(sigmahat) + logdet
@@ -452,3 +451,4 @@ like.S <- function(param,  r, amp_cov,  t,  sig=F, pr = F) {
   return(min(res, 1e10))
   
 }
+

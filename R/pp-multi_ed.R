@@ -136,10 +136,6 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
   
   Ad2 <- attr(ed_fct, 'diff2')
   
-  if(parallel.lik[1]) {
-    print("Using parallelized likelihood")
-    likelihood <- like.par
-  }
   
   
   # Warp parameters
@@ -430,38 +426,22 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
         likelihood.ed(par, param.w, r = r, Zis = Zis, A.diff2 = Ad2vals, amp_cov = amp_cov, warp_cov = warp_cov, t = t, tw = tw)
         
       }
-      else like_fct <- function(pars) {
-        par <- amp_cov_par
-        par[par1]<- pars
-        like.S(par, r = r, amp_cov = amp_cov, t = t, pr = pr)
-      }
+      else stop("not implemented without warp optimization!")
       
       
       # Likelihood gradient
-      if (parallel.lik[2])      
-        like_gr <- function(par) {
-          
-          res <- foreach(ip = 1:length(par), .combine = 'c', .noexport = c("y", "cis", "dwarp", "S","Sinv", "S.chol")) %:%
-            foreach(sign = c(1, -1), .combine= '-') %dopar% {
-              h <- rep(0, length(par))
-              h[ip] <- sign * like_eps
-              return(like_fct(par + h) / (2 * like_eps))
-            }
-          return(res)
-        }
-      else
-        like_gr <- function(par) {
-          
-          res <- rep(0, length(par))
-          for (ip in  1:length(par)) {
-            for (sign in c(1, -1)) {
-              h <- rep(0, length(par))
-              h[ip] <- sign * like_eps
-              res[ip] <- res[ip] + sign * like_fct(par + h) / (2 * like_eps)
-            }
+      like_gr <- function(par) {
+        
+        res <- rep(0, length(par))
+        for (ip in  1:length(par)) {
+          for (sign in c(1, -1)) {
+            h <- rep(0, length(par))
+            h[ip] <- sign * like_eps
+            res[ip] <- res[ip] + sign * like_fct(par + h) / (2 * like_eps)
           }
-          return(res)
         }
+        return(res)
+      }
       
       ## Estimate parameters using locally linearized likelihood
       # Control parameters:

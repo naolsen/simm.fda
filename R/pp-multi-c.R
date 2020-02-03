@@ -395,7 +395,7 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
       } else like_fct <- function(pars) {
         par <- amp_cov_par
         par[par1]<- pars
-        like.S(par, r = r, amp_cov = amp_cov, t = t, pr = pr)
+        like.nowarp(par, r = r, amp_cov = amp_cov, t = t, pr = pr)
       }
       
       # Likelihood gradient

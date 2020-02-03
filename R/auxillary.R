@@ -79,7 +79,7 @@ RZ.ting.spammed <- expression({
 #' @return -2*logL(parameters)
 #' @export
 #'
-likelihood <- function(param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig=FALSE, pr = FALSE) {
+likelihood <- function(param, r, amp_cov, t, param.w, Zis, warp_cov, tw, sig=FALSE, pr = FALSE, w = NULL) {
   
   if (!is.null(warp_cov)) {
     C <- warp_cov(tw, param.w)
@@ -135,7 +135,7 @@ likelihood <- function(param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig=FAL
 #'
 #' @rdname likelis
 #' 
-like.par <- function (param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig=FALSE, pr = FALSE) {
+like.par <- function(param, r, amp_cov, t, param.w, Zis, warp_cov, tw, sig=FALSE, pr = FALSE, w = NULL) {
   
   if (!is.null(warp_cov)) {
     C <- warp_cov(tw, param.w)

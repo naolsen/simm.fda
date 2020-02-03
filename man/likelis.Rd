@@ -3,39 +3,46 @@
 \name{likelihood}
 \alias{likelihood}
 \alias{like.par}
-\title{Linearised likelihood function}
+\alias{like.nowarp}
+\title{Linearised likelihood functions.}
 \usage{
-likelihood(param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig = FALSE,
-  pr = FALSE)
+likelihood(param, r, amp_cov, t, param.w, Zis, warp_cov, tw, sig = FALSE,
+  pr = FALSE, w = NULL)
 
-like.par(param, param.w, r, Zis, amp_cov, warp_cov, t, tw, sig = FALSE,
-  pr = FALSE)
+like.par(param, r, amp_cov, t, param.w, Zis, warp_cov, tw, sig = FALSE,
+  pr = FALSE, w = NULL)
+
+like.nowarp(param, r, amp_cov, t, sig = FALSE, pr = FALSE, ...)
 }
 \arguments{
 \item{param}{Amplitude parameters}
-
-\item{param.w}{Warp parameters}
 
 \item{r, Zis}{Residual vectors/matrices}
 
 \item{amp_cov}{Amplitude covariance function}
 
-\item{warp_cov}{Warp covariance function}
-
 \item{t}{Observation time points}
+
+\item{param.w}{Warp parameters}
+
+\item{warp_cov}{Warp covariance function}
 
 \item{tw}{}
 
 \item{sig}{Return sigma or likelihood?}
 
-\item{pr}{Print option. Only use for debugging.}
+\item{pr}{Print option. Only used for debugging.}
 }
 \value{
 -2*logL(parameters)
 }
 \description{
-Linearised likelihood function
+Linearised likelihood functions.
 }
 \details{
-like.par performs parallelized likelihood
+\code{likelihood} is the default option. \code{like.par} performs parallelized likelihood. 
+\code{like.nowarp} is used when there is no warping used (and thus no linearisation).
+}
+\seealso{
+\link{ppMulti}
 }

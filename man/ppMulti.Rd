@@ -7,8 +7,8 @@
 \usage{
 ppMulti(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
   iter = c(5, 5), w0 = NULL, use.nlm = c(FALSE, FALSE),
-  amp_cov_par = NULL, paramMax = rep(TRUE, length(amp_cov_par)),
-  parallel.lik = c(FALSE, FALSE), warp_opt = TRUE,
+  use.laplace = FALSE, amp_cov_par = NULL, paramMax = rep(TRUE,
+  length(amp_cov_par)), parallel.lik = c(FALSE, FALSE), warp_opt = TRUE,
   like_optim_control = list(), pr = FALSE, design = NULL,
   inner_parallel = FALSE, save_temp = NULL)
 }
@@ -50,6 +50,8 @@ May be overwritten by supplying control parameters.}
 \item{inner_parallel}{Should the inner optimization be done parallelly?}
 
 \item{save_temp}{Save estimates after each outer iteration? NULL or the file path.}
+
+\item{use_laplace}{Use Laplace approximation?(as opposed to linearization)}
 }
 \value{
 A list of estimates

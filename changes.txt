@@ -27,4 +27,4 @@ I will do my best to ensure all changes are included here
 
 30-01-2020: Small cleanup and removal of "functionality" feature.
 31-01-2020: Continued cleanup and removal of unused features. ppMulti now checks if input data consists of matrices. 
-
+03-02-2020: Reorganization of code. Use ppMulti(..., use_laplace = T) for laplace approximation.  

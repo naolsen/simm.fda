@@ -71,11 +71,11 @@ nlm.bound <- function(fct, p, lower, upper, ...) {
   
   for (i in 1:pl) {
     if (p[i] <= lower[i]) {
-      p[i] <- 0.999* lower+ 0.001* upper
+      p[i] <- 0.999* lower[i]+ 0.001* upper[i]
       warning("p[i] is on or outside of the lower boundary. Adjusting by 0.001* (upper-lower)")
     }
     else if (p[i] >= upper[i]) {
-      p[i] <- 0.001* lower+ 0.999* upper
+      p[i] <- 0.001* lower[i]+ 0.999* upper[i]
       warning("p[i] is on or outside of the upper boundary. Adjusting by -0.001* (upper-lower)")
     }
   }
@@ -88,8 +88,8 @@ nlm.bound <- function(fct, p, lower, upper, ...) {
   
   p <-
     nlm(f = function(par) {
+
       p2 <- exp(-abs(par))
-      pr <- sign(par)
       par <- nul + (ovre* (par > 0) - nedre* (par < 0))*(1-p2)
       
       fct(par)

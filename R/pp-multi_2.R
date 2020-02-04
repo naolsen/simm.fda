@@ -167,12 +167,12 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   if (mw == 0) {
     likelihood <- like.nowarp
   }
-  else if(parallel.lik[1]) {
+  else if(parallel.lik[1L]) {
     cat("Using parallelized likelihood\n")
     likelihood <- like.par
     if(!is.null(attr(amp_cov, "chol"))) print("Bruger smart choleski")
   }
-  else if (use.laplace) {
+  if (use.laplace) {
     cat("Using true laplace approximation\n")
     likelihood <- likelihood.lap
   }
@@ -369,8 +369,9 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
           param.w <- warp_cov_par
           par[par1]<- pars
         }
-        likelihood(par, param.w, r = r, Zis = Zis, amp_cov = amp_cov, warp_cov = warp_cov, t = t, tw = tw, pr = pr, w = w, sig = FALSE)
-      }
+        likelihood(par, param.w, r = r, Zis = Zis, amp_cov = amp_cov, warp_cov = warp_cov, t = t, tw = tw, pr = pr, 
+                   parallel = parallel.lik[1L], w = w, sig = FALSE)
+        }
       
       
       # Likelihood gradient
@@ -444,8 +445,9 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         if (gem.tmp) {
           cat('Saving estimates to ',save_temp, '\n')
           tmp_res = list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, sigma = 
-            likelihood(amp_cov_par_best, r, amp_cov, t, param.w = warp_cov_par_best, Zis = Zis, warp_cov = warp_cov, tw = tw, sig=TRUE, w = w),
-                    warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter)
+                         likelihood(amp_cov_par_best, r, amp_cov, t, param.w = warp_cov_par_best, Zis = Zis, 
+                         warp_cov = warp_cov, tw = tw, sig=TRUE, w = w, parallel = parallel.lik[1L]),
+                         warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter)
           save(tmp_res, file = save_temp)
         }
         # Update covariances
@@ -477,7 +479,8 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         w_best <- w
         c_best <- c
       }
-      sigma <- likelihood(amp_cov_par, r, amp_cov, t, param.w = warp_cov_par, Zis = Zis, warp_cov = warp_cov, tw = tw, sig=TRUE, w = w)
+      sigma <- likelihood(amp_cov_par, r, amp_cov, t, param.w = warp_cov_par, Zis = Zis, warp_cov = warp_cov, tw = tw, 
+                          sig=TRUE, w = w, parallel = parallel.lik[1L])
     }
   }
   return(list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, warp_cov_par = warp_cov_par_best, sigma = sigma, like = like_best))

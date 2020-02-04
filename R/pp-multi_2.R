@@ -285,10 +285,9 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
           foreach(i = 1:n, Sinvi = Sinv, yi = y, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis", "dwarp")) %dopar% {
             
             ci <- c %*% (design[[i]] %x% diag(K))
-            warp_optim_method <- 'CG'
             
             if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
-            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
+            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = 'CG', warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
             return(ww)
           }
         else for (i in 1:n) {
@@ -445,8 +444,8 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         if (gem.tmp) {
           cat('Saving estimates to ',save_temp, '\n')
           tmp_res = list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, sigma = 
-                           likelihood(amp_cov_par_best, warp_cov_par_best, r, Zis, amp_cov, warp_cov, t, tw, sig=TRUE),
-                         warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter)
+            likelihood(amp_cov_par_best, r, amp_cov, t, param.w = warp_cov_par_best, Zis = Zis, warp_cov = warp_cov, tw = tw, sig=TRUE, w = w),
+                    warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter)
           save(tmp_res, file = save_temp)
         }
         # Update covariances

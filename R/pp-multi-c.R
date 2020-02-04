@@ -118,8 +118,6 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
     missing_indices <- is.na(y[[i]][,1])
     y[[i]] <- y[[i]][!missing_indices, , drop = FALSE] 
     t[[i]] <- t[[i]][!missing_indices]
-    #yvek[[i]] <- unlist(y[[i]])
-    #tvek[[i]] <- rep(t[[i]], K)
   }
   # Stored warped time
   t_warped <- t
@@ -215,13 +213,11 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
         
         if (inner_parallel[1])  w_res <- ## Parallell prediction of warping parameters
           foreach(i = 1:n, Sinvi = Sinv, yi = y, tid = t, .noexport = c("Sinv", "S", "S.chol", "y", "t", "r", "Zis", "cis", "dwarp")) %dopar% {
-            #if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
-            #else cis[[i]] <- c 
+            
             ci <- if (!is.null(design)) c %*%  (design[[i]] %x% diag(K)) else c
             
-            warp_optim_method <- 'CG'
             if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = tid, y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
-            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = NULL, method = warp_optim_method, warp_fct = warp_fct, t = tid, y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
+            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = NULL, method = 'CG', warp_fct = warp_fct, t = tid, y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
             
             if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
             return(ww)
@@ -230,9 +226,8 @@ ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NUL
           
           ci <- if (!is.null(design)) c %*%  (design[[i]] %x% diag(K)) else c
           
-          warp_optim_method <- 'Nelder-Mead'
           if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = ci, Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
-          else  ww <- optim(par = w[, i], fn = posterior.lik, gr = NULL, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = ci, Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
+          else  ww <- optim(par = w[, i], fn = posterior.lik, gr = NULL, method = 'Nelder-Mead', warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = ci, Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
           
           if (homeomorphisms == 'soft') ww <- make_homeo(ww, tw)
           w_res[[i]] <- ww

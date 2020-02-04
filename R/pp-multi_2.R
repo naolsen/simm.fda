@@ -201,14 +201,15 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   m <- sapply(y, nrow)
   
   # Design part. If matrix, convert to list
-  if (is.matrix(design)) {
+  if (is.null(design))
+    design <- as.list(rep(1, n))
+  else if (is.matrix(design)) {
     des <- design
     design <- list()
     for (i in 1:n) design[[i]] <- des[i,]
   }
-  if (!is.null(design) && length(design) != n) stop("design must have same length or number of rows as the length of y.")
+  if (length(design) != n) stop("design must have same length or number of rows as the length of y.")
   cis <- list() 
-  
   
   # Build amplitude covariances and inverse covariances
   if (is.null(amp_cov)) amp_cov <- diag_covariance
@@ -241,12 +242,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   else w <- w0
   
   # Estimate spline weights
-  
-  if (!is.null(design)) {
-    c <- (splw.d(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design))
-  } else {
-    c <- splw(y, t, warp_fct, w, Sinv, basis_fct, K = K)
-  }
+  c <- spline_weights(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design)
   
   # Construct warp derivative
   dwarp <- list()
@@ -282,30 +278,26 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
       if (mw != 0) {
         # Parallel prediction of warping parameters
-          gr <- NULL
-          w_res <- list()
-          
-          if (inner_parallel)  w_res <- 
-              foreach(i = 1:n, Sinvi = Sinv, yi = y, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis", "dwarp")) %dopar% {
+        gr <- NULL
+        w_res <- list()
+        
+        if (inner_parallel)  w_res <- 
+          foreach(i = 1:n, Sinvi = Sinv, yi = y, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis", "dwarp")) %dopar% {
             
-            ci <- if (!is.null(design)) c %*%  (design[[i]] %x% diag(K)) else c
-            
+            ci <- c %*% (design[[i]] %x% diag(K))
             warp_optim_method <- 'CG'
+            
             if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
             else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
-            
             return(ww)
           }
-        else for ( i in 1:n) {
+        else for (i in 1:n) {
+          cis[[i]] <- c %*% (design[[i]] %x% diag(K))
           
-          if (!is.null(design)) cis[[i]] <- c %*%  ( design[[i]] %x% diag(K)  )
-          else cis[[i]] <- c 
-          warp_optim_method <- 'Nelder-Mead'
           if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
-          else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
-          
+          else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = 'Nelder-Mead', warp_fct = warp_fct, t = t[[i]], y = y[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
           w_res[[i]] <- ww
-          }
+        }
         
         for (i in 1:n) {
           warp_change[1] <- warp_change[1] + sum((w[, i] - w_res[[i]])^2)
@@ -315,13 +307,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       }
       else cat("No warping function provided! Skipping inner optimization.")
       # Update spline weights
-      if (is.null(design)) {
-        c <- splw(y, t, warp_fct, w, Sinv, basis_fct, K = K)
-      } else {
-        c <- (splw.d(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design))
-      }
-      
-      
+      c <- spline_weights(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design)
       
       if (warp_change[2] < 1e-2 / sqrt(mw)) break 
       
@@ -329,12 +315,25 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
     
     ### Outer loop part. 
     
-    ## 1. Construct residual vector for given warp prediction
+    ## Construct residual vector for given warp prediction
+    Zis <- r <- list()
     
-    Zis <- list()
-    r <- y
-    
-    for (i in 1:n) eval(RZ.ting)
+    if (use.laplace) for (i in 1:n) {
+      cis[[i]] <- c %*%  (design[[i]] %x% diag(K))
+      
+      # Compute warped time
+      twarped <- t_warped[[i]] <- warp_fct(w[, i], t[[i]])
+      if (!is.null(warp_cov)) {
+        if (warp_type == 'smooth') dwarp[[i]] <- warp_fct(w[, i], t[[i]], w_grad = TRUE)
+        
+        Zis[[i]] <- multi.Zi(twarped, dwarp[[i]], basis_fct, cis[[i]], mw) ## Opdateret. multi.Zi er hurtigere.
+      } else {
+        Zis[[i]] <- matrix(0, m[i]*K, mw)
+      }
+      r[[i]] <- y[[i]] - as.numeric(basis_fct(twarped) %*% cis[[i]])
+      
+    }
+    else for (i in 1:n) eval(RZ.ting)
     
     
     # Check wheter the final outer loop has been reached
@@ -725,58 +724,5 @@ pavpop_returner_zogr.ny <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, w
     sigma <- likelihood(amp_cov_par, warp_cov_par, r, Zis, amp_cov, warp_cov, t, tw, sig=T)
     
   return(list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, warp_cov_par = warp_cov_par_best, sigma = sigma, like = like_best, Zis = Zis, r = r))
-}
-
-
-## Forsøg med sand laplace-approximation
-likelihood.lap <- function(param, param.w, r, w, Zis, amp_cov, warp_cov, t, tw, sig=FALSE, pr = FALSE) {
-  
-  if (!is.null(warp_cov)) {
-    C <- warp_cov(tw, param.w)
-    Cchol <- chol(C)
-    Cinv <- chol2inv(Cchol)
-  }
-  
-  n <- length(r)
-  m <- sapply(r, length)
-  
-  sq <- logdet <- 0
-  for (i in 1:n) {
-    if (!is.null(amp_cov)) {
-      S <- amp_cov(t[[i]], param)
-  
-      U <- tryCatch(chol(S), error = function(e) NULL)
-      if (is.null(U)) return(1e10) ## Exception handling;
-    } 
-    else {
-      S <- U <- diag(1, m[i])
-    }
-    rr <- as.numeric(r[[i]])
-    ZZ <- Zis[[i]]
-    
-    if (!is.null(warp_cov)) {
-      A <- backsolve(U, backsolve(U, ZZ, transpose = TRUE))
-      LR <- chol2inv(chol(Cinv + Matrix::t(ZZ) %*% A))
-    } else {
-      LR <- 0
-    }
-    sq <- sq + sum(backsolve(U, rr, transpose = TRUE)^2) 
-                
-    logdet_tmp <- 0
-    if (!is.null(warp_cov)) logdet_tmp <- determinant(LR)$modulus[1]
-    logdet <- logdet - (logdet_tmp - 2 * sum(log(diag(U))))
-  }
-  
-  if (!is.null(warp_cov)) {
-    logdet <- logdet - n * determinant(Cinv)$modulus[1]
-    sq <- sq + sum(backsolve(chol(C), w, transpose = TRUE)^2)
-  } 
-  
-  sigmahat <- as.numeric(sq /sum(m))
-  res <- sum(m) * log(sigmahat) + logdet
-  if (pr)  print(res)
-  if (sig) return (sqrt(sigmahat))
-  return(min(res, 1e10))
-  
 }
 

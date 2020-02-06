@@ -166,11 +166,10 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   
   if (mw == 0) {
     likelihood <- like.nowarp
+    cat("No warping detected\n")
   }
   else if(parallel.lik[1L]) {
     cat("Using parallelized likelihood\n")
-    likelihood <- like.par
-    if(!is.null(attr(amp_cov, "chol"))) print("Bruger smart choleski")
   }
   if (use.laplace) {
     cat("Using true laplace approximation\n")
@@ -206,7 +205,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   else if (is.matrix(design)) {
     des <- design
     design <- list()
-    for (i in 1:n) design[[i]] <- des[i,]
+    for (i in 1:nrow(des)) design[[i]] <- des[i,] ## Slightly nicer with nrow
   }
   if (length(design) != n) stop("design must have same length or number of rows as the length of y.")
   cis <- list() 
@@ -414,8 +413,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       # Optim??r!
       cat("Optimization (outer loop) \n")
       paras <- if (warp_opt) c(warp_cov_par, amp_cov_par[par1]) else amp_cov_par[par1]
-      
-      
+
       if (use.nlm[1]) {  ## nlm optimization
         steptol <- if (is.null(like_optim_control$steptol)) 1e-6 else like_optim_control$steptol
         like_optim <- nlm.bound(fct = like_fct , p = paras, lower = lower0, upper = upper0, iterlim = maxit)
@@ -444,7 +442,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         cat('Linearized likelihood:\t', like_best, '\n')
         if (gem.tmp) {
           cat('Saving estimates to ',save_temp, '\n')
-          tmp_res = list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, sigma = 
+          tmp_res <- list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, sigma =
                          likelihood(amp_cov_par_best, r, amp_cov, t, param.w = warp_cov_par_best, Zis = Zis, 
                          warp_cov = warp_cov, tw = tw, sig=TRUE, w = w, parallel = parallel.lik[1L]),
                          warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter)

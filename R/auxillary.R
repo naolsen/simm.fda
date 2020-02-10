@@ -95,12 +95,11 @@ spline_weights <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K
   dvec <- matrix(0, nb, 1)
   
   for (i in 1:n) {
-    # I think this is the first time I have used that the kronecker product is associative
-    # Note that kronecker product is evaluated from left to right, which is fortunate. 
-    basis <- t(design[[i]]) %x% diag(K) %x%  basis_fct(warp_fct(w[, i], t[[i]])) 
+    # Rewrite LS to reduce memory and calculation time.
+    basis <- diag(K) %x%  basis_fct(warp_fct(w[, i], t[[i]]))
     bSinv <- weights[i] * (t(basis) %*% Sinv[[i]])
-    Dmat <- Dmat + bSinv %*% basis
-    dvec <- dvec + bSinv %*% as.numeric(y[[i]])
+    Dmat <- Dmat + (design[[i]] %o% design[[i]]) %x% (bSinv %*% basis)
+    dvec <- dvec + design[[i]] %x% (bSinv %*% as.numeric(y[[i]]))
   }
   
   

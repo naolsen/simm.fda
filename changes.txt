@@ -30,3 +30,4 @@ I will do my best to ensure all changes are included here
 03-02-2020: Reorganization of code. Use ppMulti(..., use_laplace = T) for laplace approximation. 
 04-02-2020: More cleanup and reorganization. Bug fixes.
 06-02-2020: More cleanup.
+10-02-2020: Faster calculation of spline coefficients. Cleanup on exponential models.

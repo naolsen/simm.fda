@@ -18,10 +18,8 @@
 #'
 #' @return A number
 #' 
-likelihood.ed <- function (param, param.w, r, Zis, A.diff2, amp_cov, warp_cov, t, tw, 
-                           pr = FALSE) {
-  
-  flag <- FALSE
+likelihood.ed <- function (param, param.w, r, Zis, A.diff2, amp_cov, warp_cov, t, tw, pr = FALSE) {
+
   if (!is.null(warp_cov)) {
     C <- warp_cov(tw, param.w)
     Cinv <- chol2inv(chol(C))
@@ -36,14 +34,11 @@ likelihood.ed <- function (param, param.w, r, Zis, A.diff2, amp_cov, warp_cov, t
     
     rr <- as.numeric(r[[i]])
     ZZ <- Zis[[i]]
-    #print(ZZ)
-    
     
     if (!is.null(amp_cov)) {
       S <- amp_cov(t[[i]], param)
       if (!is.null(warp_cov)) {
         S <- S + ZZ %*% C %*% Matrix::t(ZZ)
-        #        U <- tryCatch(chol(S), error = function(e) chol(S + diag(1e-05, m[i])))
         
         U <- tryCatch(chol(S), error = function(e) NULL)
         if (is.null(U)) return(1e10) ## Exception handling;
@@ -55,15 +50,12 @@ likelihood.ed <- function (param, param.w, r, Zis, A.diff2, amp_cov, warp_cov, t
     
     
     ## logdet(S) + logdet(tilde{\Sigma}) = logdet(I + SD)
-    
     S <- 2*A.diff2[[i]] * S + diag(m[i])
     
     logdet <- logdet + determinant(S)$modulus
     
   }
-  if(pr) print(c(logdet, sq, Sihess))
-  as.numeric(sq + logdet) 
-  
+  as.numeric(sq + logdet)
 }
 
 
@@ -71,9 +63,6 @@ posterior.lik_u <- function(u, y, vt, Sinv, A.fct) { ## alpha = 1/r
   0.5*t(u- vt) %*% Sinv %*% (u-vt) +
     sum(A.fct(u, y) - y*u)
 }
-
-## posterior.lik for w is equal.
-posterior.lik_w <- posterior.lik
 
 
 #' Simultaneous inference for misaligned functional data in an exponential family setting
@@ -114,11 +103,11 @@ posterior.lik_w <- posterior.lik
 #' @seealso \link{ppMulti}
 #'
 simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
-                          w0 = NULL, u0 = NULL, use.nlm = c(FALSE, FALSE), suppressLik = F,
+                          w0 = NULL, u0 = NULL, use.nlm = c(FALSE, FALSE), suppressLik = FALSE,
                           amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)), warp_opt = TRUE,
-                          like_optim_control = list(), pr=FALSE, design = NULL, inner_parallel = FALSE, save_temp = NULL) {
+                          like_optim_control = list(), design = NULL, inner_parallel = FALSE, save_temp = NULL) {
   
-  ## Opsætnings-ting
+  ## Opsï¿½tnings-ting
   
   nouter <- iter[1] + 1
   if (is.null(amp_cov) & is.null(warp_cov)) nouter <- 1
@@ -182,17 +171,16 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
   t_warped <- t  # Stored warped time
   m <- sapply(y, length) # Update m with cleaned data
   
-  
-  cis <- list() ## For designs
-  
   # Design part. If matrix, convert to list
-  if (is.matrix(design)) {
+  if (is.null(design))
+    design <- as.list(rep(1, n))
+  else if (is.matrix(design)) {
     des <- design
     design <- list()
-    for (i in 1:n) design[[i]] <- des[i,]
+    for (i in 1:nrow(des)) design[[i]] <- des[i,] ## Slightly nicer with nrow
   }
-  if (!is.null(design) && length(design) != n) stop("design must have same length or number of rows as the length of y.")
-  
+  if (length(design) != n) stop("design must have same length or number of rows as the length of y.")
+  cis <- list()
   
   # Build amplitude covariances and inverse covariances
   if (is.null(amp_cov)) amp_cov <- diag_covariance
@@ -244,16 +232,8 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
   
   
   # Estimate spline weights
-  
-  if (!is.null(design)) {
-    c <- (splw.d(u, t, warp_fct, w, Sinv, basis_fct, K = 1, design=design))
-  } else {
-    c <- splw(u, t, warp_fct, w, Sinv, basis_fct, K = 1)
-  }
-  for ( i in 1:n) {
-    if (!is.null(design)) cis[[i]] <- c %*% design[[i]] 
-    else cis[[i]] <- c 
-  }
+  c <- spline_weights(u, t, warp_fct, w, Sinv, basis_fct, K = 1, design=design)
+  for (i in 1:n) cis[[i]] <- c %*% design[[i]]
   
   # Construct warp derivative
   dwarp <- list()
@@ -294,24 +274,20 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
         if (like_optim_control$optim_w) {
           
           if (inner_parallel)  w_res <- 
-              foreach(i = 1:n, Sinvi = Sinv, yi = y, ui = u, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis", "dwarp")) %dopar% {
-                
-                ci <- if (!is.null(design)) c %*% design[[i]]  else c
-                
-                warp_optim_method <- 'CG'
-                if (use.nlm[2]) ww <- nlm(f = posterior.lik_w, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = ui, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
-                else  ww <- optim(par = w[, i], fn = posterior.lik_w, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = ui, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
-                
-                return(ww)
-              }
+            foreach(i = 1:n, Sinvi = Sinv, yi = y, ui = u, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis", "dwarp")) %dopar% {
+
+              ci <- if (!is.null(design)) c %*% design[[i]]  else c
+
+              if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = ui, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate
+              else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = 'CG', warp_fct = warp_fct, t = t[[i]], y = ui, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
+
+              return(ww)
+            }
           else for ( i in 1:n) {
-            
-            if (!is.null(design)) cis[[i]] <- c %*% design[[i]] 
-            else cis[[i]] <- c 
-            warp_optim_method <- 'Nelder-Mead'
-            if (use.nlm[2]) ww <- nlm(f = posterior.lik_w, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = u[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate 
-            else  ww <- optim(par = w[, i], fn = posterior.lik_w, gr = gr, method = warp_optim_method, warp_fct = warp_fct, t = t[[i]], y = u[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
-            
+            cis[[i]] <- c %*% design[[i]]
+
+            if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = u[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$estimate
+            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = 'Nelder-Mead', warp_fct = warp_fct, t = t[[i]], y = u[[i]], c = cis[[i]], Sinv = Sinv[[i]], Cinv = Cinv, basis_fct = basis_fct)$par
             w_res[[i]] <- ww
           }
           
@@ -325,21 +301,15 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
           vts[[i]] <- basis_fct(warp_fct(w[,i], t[[i]])) %*% cis[[i]]
           
           u[[i]] <- optim(u[[i]], posterior.lik_u, y = y[[i]], Sinv = Sinv[[i]], vt = vts[[i]], A.fct = ed_fct)$par
-          #optim(rep(0, m[i]), function(par) posterior.lik_u(y[[i]], par, vt, Sinv, A.fct), method = "CG")$par
           Avals[i] <- sum(ed_fct(u[[i]], y[[i]])- y[[i]]*u[[i]])
           Adiffs[[i]] <- Ad2(u[[i]], y[[i]])
         }
         
         
       }
-      else cat(" Skipping inner optimization")
+      else cat("No warping function provided! Skipping inner optimization.")
       # Update spline weights
-      if (is.null(design)) {
-        c <- splw(u, t, warp_fct, w, Sinv, basis_fct, K = 1)
-      } else {
-        c <- (splw.d(u, t, warp_fct, w, Sinv, basis_fct, K = 1, design=design))
-      }
-      
+      c <- spline_weights(u, t, warp_fct, w, Sinv, basis_fct, K = 1, design=design)
       
       if (warp_change[2] < like_optim_control$warp_crit / sqrt(mw) && like_optim_control$optim_w) break 
       
@@ -349,13 +319,10 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
     
     ## 1. Construct residual vector for given warp prediction
     
-    Zis <- list()
-    r <- u
-    
+    Zis <- r <- list()
+
     for (i in 1:n) {
-      if (is.null(design)) 
-        cis[[i]] <- c
-      else cis[[i]] <- c %*% (design[[i]])
+      cis[[i]] <- c %*% (design[[i]])
       twarped <- t_warped[[i]] <- warp_fct(w[, i], t[[i]])
       if (!is.null(warp_cov)) {
         if (warp_type == "smooth") 
@@ -366,7 +333,7 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
       else {
         Zis[[i]] <- matrix(0, m[i], mw)
       }
-      #print(Zis)
+
       if (nrow(w) != 1) {
         r[[i]] <- u[[i]] - as.numeric(basis_fct(twarped) %*% 
                                         cis[[i]]) + as.numeric(Zis[[i]] %*% w[, i])
@@ -374,9 +341,7 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
       else {
         rrr <- u[[i]]
         for (k in 1:1) {
-          rrr[, k] <- rrr[, k] - basis_fct(twarped) %*% cis[[i]][, 
-                                                                 k] + Zis[[i]][(m[i] * (k - 1) + 1):(m[i] * k), 
-                                                                               ] * w[, i]
+          rrr[, k] <- rrr[, k] - basis_fct(twarped) %*% cis[[i]][, k] + Zis[[i]][(m[i] * (k - 1) + 1):(m[i] * k), ] * w[, i]
         }
         r[[i]] <- rrr
       }
@@ -390,7 +355,6 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
       
       # Likelihood function
       par1 <- which(paramMax)
-      parw <- n_par_amp + p_warp
       
       like_eps <- if (is.null(like_optim_control$eps)) 1e-5 else like_optim_control$eps
       randomCycle <- if (is.null(like_optim_control$randomCycle)) -1 else like_optim_control$randomCycle
@@ -461,7 +425,7 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
       
       if (use.nlm[1]) {  ## nlm optimization
         steptol <- if (is.null(like_optim_control$steptol)) 1e-6 else like_optim_control$steptol
-        like_optim <- nlm.bound(fct = like_fct , p = paras, lower = lower0, upper = upper0, symmetric = TRUE, iterlim = maxit)
+        like_optim <- nlm.bound(fct = like_fct , p = paras, lower = lower0, upper = upper0, iterlim = maxit)
         param <- like_optim$estimate
         like_optim$value <- like_optim$minimum
       }
@@ -490,7 +454,7 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
         cat('Linearized likelihood:\t', like_best, '\n')
         if (gem.tmp) {
           cat('Saving estimates to ',save_temp, '\n')
-          tmp_res = list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, 
+          tmp_res <- list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best,
                          warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter, u = u)
           save(tmp_res, file = save_temp)
         }

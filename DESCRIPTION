@@ -1,10 +1,9 @@
 Package: simm.fda
-Title: Simultaneous inference for Misaligned Multivariate Functional Data
-Version: 1.0.15
+Title: Simultaneous inference for Misaligned Functional Data
+Version: 1.0.16
 Author: Niels Olsen
-Maintainer: Niels Olsen <niels-olsen@math.ku.dk>
-Description: Simultaneous inference for Misaligned Multivariate Functional
-    Data.
+Maintainer: Niels Olsen <nalo@dtu.dk>
+Description: Simultaneous inference for Misaligned Functional Data.
 Depends:
     R (>= 3.0.0),
     Matrix,

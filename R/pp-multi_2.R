@@ -339,7 +339,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       
       # Likelihood function
       par1 <- which(paramMax)
-      parw <- n_par_amp + p_warp
       
       like_eps <- if (is.null(like_optim_control$eps)) 1e-5 else like_optim_control$eps
       randomCycle <- if (is.null(like_optim_control$randomCycle)) -1 else like_optim_control$randomCycle
@@ -370,7 +369,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         }
         likelihood(par, param.w, r = r, Zis = Zis, amp_cov = amp_cov, warp_cov = warp_cov, t = t, tw = tw, pr = pr, 
                    parallel = parallel.lik[1L], w = w, sig = FALSE)
-        }
+      }
       
       
       # Likelihood gradient

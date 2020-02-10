@@ -6,9 +6,9 @@
 \usage{
 simfd.ed(y, t, basis_fct, warp_fct, ed_fct, amp_cov = NULL, warp_cov = NULL,
   iter = c(5, 5), w0 = NULL, u0 = NULL, use.nlm = c(FALSE, FALSE),
-  suppressLik = F, amp_cov_par = NULL, paramMax = rep(TRUE,
+  suppressLik = FALSE, amp_cov_par = NULL, paramMax = rep(TRUE,
   length(amp_cov_par)), warp_opt = TRUE, like_optim_control = list(),
-  pr = FALSE, design = NULL, inner_parallel = FALSE, save_temp = NULL)
+  design = NULL, inner_parallel = FALSE, save_temp = NULL)
 }
 \arguments{
 \item{y}{List of observations. NAs allowed}
@@ -32,7 +32,7 @@ maximal number of inner iterations per outer iteration.}
 
 \item{u0}{Starting values for predicted trajectories. Should only be used if you have results from a previous run.}
 
-\item{use.nlm}{se \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.}
+\item{use.nlm}{Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.}
 
 \item{suppressLik}{Suppress if likelihood has increased}
 
@@ -45,11 +45,9 @@ May be overwritten by supplying control parameters.}
 
 \item{like_optim_control}{List of control options for optimization in outer loop. See \link{ppMulti} for details.}
 
-\item{pr}{Printing option.}
-
 \item{design}{Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.}
 
-\item{inner_parallel}{Should the inner optimization be done parallelly?}
+\item{inner_parallel}{Should the inner optimization be done in parallel?}
 
 \item{save_temp}{Save estimates after each outer iteration? NULL or the file path.}
 }
@@ -60,8 +58,7 @@ A list of estimates and predictions of w and u
 This function applies the simm.fda methodology in a setting of certain exponential models (e.g. poisson) followiong the approach outlined in article[..]
 }
 \details{
-sim.fd can only handle one-dimensional functional data. It should NOT be applied to Gaussian data, unless sigma^2 is known and fixed beforehand.
-Not all relevant control parameters have been checked for compliance; however parallelization does work (on Linux)
+\code{sim.fd} can only handle one-dimensional functional data. It should NOT be applied to Gaussian data, unless sigma^2 is known and fixed beforehand.
 }
 \seealso{
 \link{ppMulti}

@@ -40,15 +40,10 @@ likelihood <- function(param, r, amp_cov, t, param.w, Zis, warp_cov, tw, sig=FAL
 
   if (parallel) {
     sqLogd <- foreach(i = 1:n, ZZ = Zis, rr = r, tid = t, .combine = '+', .noexport = c("Zis", "r", "t"), .inorder = FALSE) %dopar% {
-      if (!is.null(amp_cov)) {
-        S <- amp_cov(tid, param)
 
-        U <- tryCatch(chol(S), error = function(e) NULL)
-        if (is.null(U)) return(1e10) ## Exception handling;
-      } else {
-        S <- U <- diag(1, m[i])
-      }
-
+      U <- tryCatch(chol(amp_cov(tid, param)),
+                    error = function(e) NULL)
+      if (is.null(U)) return(1e10) ## Exception handling;
 
       rr <- as.numeric(rr)
 
@@ -70,15 +65,11 @@ likelihood <- function(param, r, amp_cov, t, param.w, Zis, warp_cov, tw, sig=FAL
     logdet <- sqLogd[2]
   }
   else for (i in 1:n) {
-    if (!is.null(amp_cov)) {
-      S <- amp_cov(t[[i]], param)
-      
-      U <- tryCatch(chol(S), error = function(e) NULL)
-      if (is.null(U)) return(1e10) ## Exception handling;
-    } else {
-      
-      S <- U <- diag(1, m[i])
-    }
+
+    U <- tryCatch(chol(amp_cov(t[[i]], param)),
+                  error = function(e) NULL)
+    if (is.null(U)) return(1e10) ## Exception handling;
+
     rr <- as.numeric(r[[i]])
     ZZ <- Zis[[i]]
     
@@ -164,15 +155,9 @@ likelihood.lap <- function(param, r, amp_cov, t, param.w, Zis, warp_cov, tw, sig
   sq <- logdet <- 0
   if (parallel) {
     sqLogd <- foreach(ri = r, Zisi = Zis, tid = t, .combine = '+', .noexport = c("Zis", "r", "t"), .inorder = FALSE) %dopar% {
-      if (!is.null(amp_cov)) {
-        S <- amp_cov(tid, param)
-        
-        U <- tryCatch(chol(S), error = function(e) NULL)
-        if (is.null(U)) return(1e10) ## Exception handling;
-      } 
-      else {
-        S <- U <- diag(1, length(ri))
-      }
+
+      U <- tryCatch(chol(amp_cov(tid, param)), error = function(e) NULL)
+      if (is.null(U)) return(1e10) ## Exception handling;
       
       if (!is.null(warp_cov)) {
         A <- backsolve(U, backsolve(U, Zisi, transpose = TRUE))
@@ -191,16 +176,10 @@ likelihood.lap <- function(param, r, amp_cov, t, param.w, Zis, warp_cov, tw, sig
     logdet <- sqLogd[2]
   }
   else for (i in 1:n) {
-    if (!is.null(amp_cov)) {
-      S <- amp_cov(t[[i]], param)
-      
-      U <- tryCatch(chol(S), error = function(e) NULL)
-      if (is.null(U)) return(1e10) ## Exception handling;
-    } 
-    else {
-      S <- U <- diag(1, m[i])
-    }
-    rr <- as.numeric(r[[i]])
+
+    U <- tryCatch(chol(amp_cov(t[[i]], param)), error = function(e) NULL)
+    if (is.null(U)) return(1e10) ## Exception handling;
+    
     ZZ <- Zis[[i]]
     
     if (!is.null(warp_cov)) {
@@ -209,7 +188,7 @@ likelihood.lap <- function(param, r, amp_cov, t, param.w, Zis, warp_cov, tw, sig
     } else {
       LR <- 0
     }
-    sq <- sq + sum(backsolve(U, rr, transpose = TRUE)^2) 
+    sq <- sq + sum(backsolve(U, as.numeric(r[[i]]), transpose = TRUE)^2)
     
     logdet_tmp <- 0
     if (!is.null(warp_cov)) logdet_tmp <- - determinant(LR)$modulus[1]

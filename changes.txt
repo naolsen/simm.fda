@@ -31,3 +31,4 @@ I will do my best to ensure all changes are included here
 04-02-2020: More cleanup and reorganization. Bug fixes.
 06-02-2020: More cleanup.
 10-02-2020: Faster calculation of spline coefficients. Cleanup on exponential models.
+13-02-2020: Breaking change (v 1.1.0): 'parallel' arguments must now be provided as a character vector. Also bug fix.

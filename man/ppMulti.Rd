@@ -6,11 +6,10 @@
 \title{Simultaneous inference for Misaligned Multivarariate functional data}
 \usage{
 ppMulti(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
-  iter = c(5, 5), w0 = NULL, use.nlm = c(FALSE, FALSE),
-  use.laplace = FALSE, amp_cov_par = NULL, paramMax = rep(TRUE,
-  length(amp_cov_par)), parallel.lik = c(FALSE, FALSE), warp_opt = TRUE,
-  like_optim_control = list(), pr = FALSE, design = NULL,
-  inner_parallel = FALSE, save_temp = NULL)
+  iter = c(5, 5), w0 = NULL, amp_cov_par, use.nlm = c(FALSE, FALSE),
+  use.laplace = FALSE, paramMax = rep(TRUE, length(amp_cov_par)),
+  parallel = c(), warp_opt = TRUE, like_optim_control = list(),
+  pr = FALSE, design = NULL, save_temp = NULL)
 }
 \arguments{
 \item{y}{List of observations in matrix form. NAs allowed}
@@ -30,16 +29,17 @@ maximal number of inner iterations per outer iteration.}
 
 \item{w0}{Starting values for predicted warps. Should only be used if you have results from a previous run.}
 
-\item{use.nlm}{Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.}
-
 \item{amp_cov_par}{Starting values for amplitude covariance parameters. There are no defaults.}
+
+\item{use.nlm}{Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.}
 
 \item{paramMax}{Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.
 May be overwritten by supplying control parameters.}
 
-\item{parallel.lik}{Calculate likelihoods in parallel?}
+\item{parallel}{Which parts be run in parallel? Character vector. Possibilities are
+\code{c("warp prediction", "likelihood", "amplitude covariance", "spline weights")}. Partial matching allowed. See details.}
 
-\item{warp_opt}{If FALSE, warp covariance parameters are kept fixed.}
+\item{warp_opt}{If \code{FALSE}, warp covariance parameters are kept fixed.}
 
 \item{like_optim_control}{List of control options for optimization in outer loop. See details}
 
@@ -47,11 +47,9 @@ May be overwritten by supplying control parameters.}
 
 \item{design}{Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.}
 
-\item{inner_parallel}{Should the inner optimization be done parallelly?}
+\item{save_temp}{Save estimates after each outer iteration? \code{NULL} or the file path.}
 
-\item{save_temp}{Save estimates after each outer iteration? NULL or the file path.}
-
-\item{use_laplace}{Use Laplace approximation?(as opposed to linearization)}
+\item{use_laplace}{Use Laplace approximation? (as opposed to linearization)}
 }
 \value{
 A list of estimates
@@ -64,15 +62,14 @@ ppMulti returns a warning if applied on one-dimensional functional data.
 
 Control parameters:
 
-\code{lower}, \code{upper}, method, ndeps, maxit will be sent to optim. The first indices in lower/upper are warp parameter bounds.
-#' See \link{optim} for more details. 
+\code{lower}, \code{upper}, method, ndeps, \code{maxit} will be sent to optim/nlm. The first indices in lower/upper are warp parameter bounds.
+#' See \link{optim} for more details.
 
-If \code{use.nlm} is selected the optimization is performed using the \code{nlm} function. 
-Bounds are handled through a logit transformation. Note that the optimization will not be able to actually reach the bounds.
-Presently, the user cannot pass any control values to nlm.
+If \code{use.nlm} is selected the optimization is performed using the \code{nlm} function.
+Bounds are handled through transformation. Note that the optimization will not be able to actually reach the bounds.
 
 The first entries of lower/upper correspond to warp parameters, while the rest corresponds to
-amplitude parameters. ppMulti does match upper/lower with corresponding entries in amp_cov, which is important when not all parameters are maximized over. 
+amplitude parameters. ppMulti does match upper/lower with corresponding entries in amp_cov, which is important when not all parameters are maximized over.
 This is for consistency with randomCycle and optimRule.
 
 randomCycle and optimRule are two ways of optimizing on only a subset of the parameters at a time. These overwrites the paramMax argument.
@@ -80,9 +77,11 @@ TBD: descriptions of these.
 
 Amplitude covariance uses all time points from first observation coordinate, all time points from second observation coordinate etc.
 
-Regarding parallelization: The user must initiate and control parallelization objects by herself. 
-simm.fda just calls \code{foreach} and does not provide any tools for handling parallelization objects (this is a deliberate design strategy).
-Note that parallelization does not work in every situation and may depend on operative system among other things.
+Parallel arguments:
+
+\code{warp prediction} runs the inner loop of warp prediction in parallel. \code{likelihood} calculates the likelihood in parallel.
+\code{amplitude covariance} updates (inverse) covariances in parallel (outside of outer loop). \code{spline weights} is currently ignored.
+Note that \code{simm.fda} just calls \code{foreach} and does not provide any tools for handling parallelization objects (this is a deliberate design strategy).
 }
 \examples{
 \link{example}

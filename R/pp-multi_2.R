@@ -30,52 +30,53 @@
 #' @param amp_cov_par Starting values for amplitude covariance parameters. There are no defaults.
 #' @param paramMax Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.
 #' May be overwritten by supplying control parameters.
-#' @param parallel.lik Calculate likelihoods in parallel?
-#' @param warp_opt If FALSE, warp covariance parameters are kept fixed. 
+#' @param parallel Which parts be run in parallel? Character vector. Possibilities are
+#' \code{c("warp prediction", "likelihood", "amplitude covariance", "spline weights")}. Partial matching allowed. See details.
+#' @param warp_opt If \code{FALSE}, warp covariance parameters are kept fixed.
 #' @param like_optim_control List of control options for optimization in outer loop. See details
 #' @param use.nlm Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.
 #' @param pr Printing option.
 #' @param design Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.
-#' @param inner_parallel Should the inner optimization be done parallelly?
-#' @param save_temp Save estimates after each outer iteration? NULL or the file path.
-#' @param use_laplace Use Laplace approximation?(as opposed to linearization)
+#' @param save_temp Save estimates after each outer iteration? \code{NULL} or the file path.
+#' @param use_laplace Use Laplace approximation? (as opposed to linearization)
 #'
 #' @details ppMulti returns a warning if applied on one-dimensional functional data.
-#' 
+#'
 #' Control parameters:
-#' 
-#' \code{lower}, \code{upper}, method, ndeps, maxit will be sent to optim. The first indices in lower/upper are warp parameter bounds.
-#' #' See \link{optim} for more details. 
-#' 
-#' If \code{use.nlm} is selected the optimization is performed using the \code{nlm} function. 
-#' Bounds are handled through a logit transformation. Note that the optimization will not be able to actually reach the bounds.
-#' Presently, the user cannot pass any control values to nlm.
-#' 
+#'
+#' \code{lower}, \code{upper}, method, ndeps, \code{maxit} will be sent to optim/nlm. The first indices in lower/upper are warp parameter bounds.
+#' #' See \link{optim} for more details.
+#'
+#' If \code{use.nlm} is selected the optimization is performed using the \code{nlm} function.
+#' Bounds are handled through transformation. Note that the optimization will not be able to actually reach the bounds.
+#'
 #' The first entries of lower/upper correspond to warp parameters, while the rest corresponds to
-#' amplitude parameters. ppMulti does match upper/lower with corresponding entries in amp_cov, which is important when not all parameters are maximized over. 
+#' amplitude parameters. ppMulti does match upper/lower with corresponding entries in amp_cov, which is important when not all parameters are maximized over.
 #' This is for consistency with randomCycle and optimRule.
-#' 
+#'
 #' randomCycle and optimRule are two ways of optimizing on only a subset of the parameters at a time. These overwrites the paramMax argument.
 #' TBD: descriptions of these.
-#' 
+#'
 #' Amplitude covariance uses all time points from first observation coordinate, all time points from second observation coordinate etc.
-#' 
-#' Regarding parallelization: The user must initiate and control parallelization objects by herself. 
-#' simm.fda just calls \code{foreach} and does not provide any tools for handling parallelization objects (this is a deliberate design strategy).
-#' Note that parallelization does not work in every situation and may depend on operative system among other things.
+#'
+#' Parallel arguments:
+#'
+#' \code{warp prediction} runs the inner loop of warp prediction in parallel. \code{likelihood} calculates the likelihood in parallel.
+#' \code{amplitude covariance} updates (inverse) covariances in parallel (outside of outer loop). \code{spline weights} is currently ignored.
+#' Note that \code{simm.fda} just calls \code{foreach} and does not provide any tools for handling parallelization objects (this is a deliberate design strategy).
 #'
 #'
 #' @aliases simm.fda
 #'
-#' @seealso 
+#' @seealso
 #' Important details can be found in simm-fda-short-desc.pdf
-#' 
+#'
 #'
 #' @return A list of estimates
 #' @export
 #'
 #' @examples \link{example}
-#' 
+#'
 #' \donttest{
 #' # Data originates from http://mocap.cs.cmu.edu/
 #'
@@ -114,12 +115,10 @@
 #'}
 #'
 
-
 ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
-                    w0 = NULL, use.nlm = c(FALSE, FALSE), use.laplace = FALSE,
-                    amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)),  parallel.lik = c(FALSE, FALSE), warp_opt = TRUE,
-                    like_optim_control = list(), pr=FALSE, design = NULL, inner_parallel = FALSE, save_temp = NULL) {
-  
+                    w0 = NULL, amp_cov_par, use.nlm = c(FALSE, FALSE), use.laplace = FALSE,
+                    paramMax = rep(TRUE, length(amp_cov_par)), parallel = c(),  warp_opt = TRUE,
+                    like_optim_control = list(), pr=FALSE, design = NULL, save_temp = NULL) {
   ## Opsætnings-ting
   
   nouter <- iter[1] + 1
@@ -135,16 +134,21 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
     gem.tmp <- T
     if (!is.character(save_temp)) stop("save_temp must be either NULL or a specified file location")
   }
-  
-  
+
+  # Parallel
+  ptypes <- c("warp prediction", "likelihood", "amplitude covariance", "spline weights")
+  parallel <- ptypes[pmatch(parallel, ptypes)]
+  if (any(is.na(parallel))) warning('Unrecognized parallel arguments')
+  if (length(parallel) > 0) cat("The following arguments are parallelized: ", parallel, "\n")
+  plik <- ('likelihood' %in% parallel)
+
   # Warp parameters
   tw <- attr(warp_fct, 'tw')
   mw <- attr(warp_fct, 'mw')
   if (all(is.na(tw))) tw <- rep(tw, mw)
   warp_type <- attr(warp_fct, 'type')
   if (warp_type == 'identity') warp_cov <- NULL
-  
-  
+
   # Unknown parameters
   if (!is.null(warp_cov)) {
     warp_cov_par <- eval(attr(warp_cov, 'param'))
@@ -155,12 +159,10 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   }
   n_par_warp <- length(warp_cov_par)
   
-  
   if (mw == 0)  {
     n_par_warp <- 0
     warp_opt <- FALSE
   }
-  n_par_amp <- length(amp_cov_par)
   
   p_warp <- if (!is.null(warp_cov) && warp_opt) 1:n_par_warp else c()
   
@@ -168,19 +170,13 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
     likelihood <- like.nowarp
     cat("No warping detected\n")
   }
-  else if(parallel.lik[1L]) {
+  else if(plik) {
     cat("Using parallelized likelihood\n")
   }
   if (use.laplace) {
     cat("Using true laplace approximation\n")
     likelihood <- likelihood.lap
   }
-  
-  
-  ## Check if no. of ( lower) parameter limits correspond to ...
-  if (!is.null(like_optim_control$lower) && length(like_optim_control$lower) > 1 && length(like_optim_control$lower) != n_par_amp + n_par_warp)
-    warning("Mismatch between number of parameters and number of limits supplied! Problems may occur")
-  
   
   # Check for correct data structures of y and t
   # Remove missing values
@@ -211,18 +207,30 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   cis <- list() 
   
   # Build amplitude covariances and inverse covariances
-  if (is.null(amp_cov)) amp_cov <- diag_covariance
+  if (is.null(amp_cov)) {
+    amp_cov <- function(t, par) diag(K*length(t))
+    amp_cov_par <- c()
+    paramMax <- logical(0)
+  }
+  n_par_amp <- length(amp_cov_par)
   
   inv_amp_cov <- attr(amp_cov, 'inv_cov_fct')
   inv_amp <- !is.null(attr(amp_cov, 'inv_cov_fct'))
   
   S <- Sinv <- list()
-  for (i in 1:n) {
-    # Check if an amplitude covariance is defined
-    
-    S[[i]] <- amp_cov(t[[i]], amp_cov_par)
+  if ('amplitude covariance' %in% parallel) {
+    SSi <- foreach(tt = t, .noexport = "t") %dopar% {
+      s <- amp_cov(tt, amp_cov_par)
+      list(s, chol2inv(chol(s)))
+    }
+    S <- lapply(SSi, function(x) x[[1]])
+    Sinv <- lapply(SSi, function(x) x[[2]])
+  }
+  else for (i in 1:n) {
+    twarped <- t[[i]]
+    S[[i]] <- amp_cov(twarped, amp_cov_par)
     if (inv_amp) {
-      Sinv[[i]] <- inv_amp_cov(t[[i]], amp_cov_par)
+      Sinv[[i]] <- inv_amp_cov(twarped, amp_cov_par)
     } else {
       Sinv[[i]] <- chol2inv(chol(S[[i]]))
     }
@@ -239,6 +247,10 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   # Initialize warp parameters
   if (is.null(w0))   w <- array(attr(warp_fct, 'init'), dim = c(mw, n))
   else w <- w0
+
+  # Check if no. of (lower) parameter limits correspond to no. of parameters
+  if (!is.null(like_optim_control$lower) && length(like_optim_control$lower) > 1 && length(like_optim_control$lower) != n_par_amp + n_par_warp)
+    warning("Mismatch between number of parameters and number of limits supplied! Problems may occur")
   
   # Estimate spline weights
   c <- spline_weights(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design)
@@ -280,13 +292,13 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         gr <- NULL
         w_res <- list()
         
-        if (inner_parallel)  w_res <- 
-          foreach(i = 1:n, Sinvi = Sinv, yi = y, .noexport = c("y", "Sinv", "S", "dwarp", "r", "Zis", "cis", "dwarp")) %dopar% {
+        if ('warp prediction' %in% parallel) w_res <-
+          foreach(i = 1:n, Sinvi = Sinv, yi = y, ti = t, .noexport = c("y", "Sinv", "t")) %dopar% {
             
             ci <- c %*% (design[[i]] %x% diag(K))
             
-            if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate 
-            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = 'CG', warp_fct = warp_fct, t = t[[i]], y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
+            if (use.nlm[2]) ww <- nlm(f = posterior.lik, p = w[,i], warp_fct = warp_fct, t = ti, y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$estimate
+            else  ww <- optim(par = w[, i], fn = posterior.lik, gr = gr, method = 'CG', warp_fct = warp_fct, t = ti, y = yi, c = ci, Sinv = Sinvi, Cinv = Cinv, basis_fct = basis_fct)$par
             return(ww)
           }
         else for (i in 1:n) {
@@ -368,25 +380,11 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
           par[par1]<- pars
         }
         likelihood(par, param.w, r = r, Zis = Zis, amp_cov = amp_cov, warp_cov = warp_cov, t = t, tw = tw, pr = pr, 
-                   parallel = parallel.lik[1L], w = w, sig = FALSE)
+                   parallel = plik, w = w, sig = FALSE)
       }
-      
-      
       # Likelihood gradient
-      if (parallel.lik[2])      
         like_gr <- function(par) {
-          
-          res <- foreach(ip = 1:length(par), .combine = 'c', .noexport = c("y", "cis", "dwarp", "S","Sinv", "S.chol")) %:%
-            foreach(sign = c(1, -1), .combine= '-') %dopar% {
-              h <- rep(0, length(par))
-              h[ip] <- sign * like_eps
-              return(like_fct(par + h) / (2 * like_eps))
-            }
-          return(res)
-        }
-      else
-        like_gr <- function(par) {
-          
+
           res <- rep(0, length(par))
           for (ip in  1:length(par)) {
             for (sign in c(1, -1)) {
@@ -427,7 +425,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       cat("Parameter values: ")
       
       if (!is.null(warp_cov) && warp_opt) warp_cov_par <- param[p_warp]
-      if (!is.null(amp_cov)) amp_cov_par[par1] <- if (length(p_warp) > 0) param[- (p_warp)] else param
+      amp_cov_par[par1] <- if (length(p_warp) > 0) param[- (p_warp)] else param
       
       if (like_optim$value <= like_best) {
         # Save parameters
@@ -443,14 +441,14 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
           cat('Saving estimates to ',save_temp, '\n')
           tmp_res <- list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, sigma =
                          likelihood(amp_cov_par_best, r, amp_cov, t, param.w = warp_cov_par_best, Zis = Zis, 
-                         warp_cov = warp_cov, tw = tw, sig=TRUE, w = w, parallel = parallel.lik[1L]),
+                         warp_cov = warp_cov, tw = tw, sig=TRUE, w = w, parallel = plik),
                          warp_cov_par = warp_cov_par_best, like= like_best, iteration = iouter)
           save(tmp_res, file = save_temp)
         }
 
         # Update covariances
         cat('Updating covariances\n')
-        if (parallel.lik[1L]) {
+        if ('amplitude covariance' %in% parallel) {
           SSi <- foreach(tt = t, .noexport = "t") %dopar% {
             s <- amp_cov(tt, amp_cov_par)
             list(s, chol2inv(chol(s)))
@@ -486,7 +484,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
         c_best <- c
       }
       sigma <- likelihood(amp_cov_par, r, amp_cov, t, param.w = warp_cov_par, Zis = Zis, warp_cov = warp_cov, tw = tw, 
-                          sig=TRUE, w = w, parallel = parallel.lik[1L])
+                          sig=TRUE, w = w, parallel = plik)
     }
   }
   return(list(c = c_best, w = w_best, amp_cov_par = amp_cov_par_best, warp_cov_par = warp_cov_par_best, sigma = sigma, like = like_best))
@@ -529,7 +527,7 @@ pp.multi.like <- function(y, t, basis_fct, warp_fct, w, amp_cov = NULL, warp_cov
     likelihood <- like.nowarp
     cat("No warping detected\n")
   }
-  else if(parallel.lik[1L]) {
+  else if(parallel.lik) {
     cat("Using parallelized likelihood\n")
   }
   if (use.laplace) {
@@ -626,9 +624,9 @@ pp.multi.like <- function(y, t, basis_fct, warp_fct, w, amp_cov = NULL, warp_cov
   else for (i in 1:n) eval(RZ.ting)
 
   sigma <- likelihood(amp_cov_par, r, amp_cov, t, param.w = warp_cov_par, Zis = Zis, warp_cov = warp_cov, tw = tw,
-                      sig=TRUE, w = w, parallel = parallel.lik[1L])
+                      sig=TRUE, w = w, parallel = parallel.lik)
   like <- likelihood(amp_cov_par, r, amp_cov, t, param.w = warp_cov_par, Zis = Zis, warp_cov = warp_cov, tw = tw,
-                     sig=FALSE, w = w, parallel = parallel.lik[1L])
+                     sig=FALSE, w = w, parallel = parallel.lik)
 
   return(list(c = c, w = w, amp_cov_par = amp_cov_par, warp_cov_par = warp_cov_par, sigma = sigma, like = like, Zis = Zis, r = r))
 }

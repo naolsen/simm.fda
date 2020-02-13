@@ -145,16 +145,12 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
   }
   n_par_warp <- length(warp_cov_par)
   
-  
-  if (mw == 0)  n_par_warp <- 0
-  n_par_amp <- length(amp_cov_par)
+  if (mw == 0)  {
+    n_par_warp <- 0
+    warp_opt <- FALSE
+  }
   
   p_warp <- if (!is.null(warp_cov) && warp_opt) 1:n_par_warp else c()
-  
-  ## Check if no. of ( lower) parameter limits correspond to ...
-  
-  if (!is.null(like_optim_control$lower) && length(like_optim_control$lower) > 1 && length(like_optim_control$lower) != n_par_amp + n_par_warp)
-    warning("Mismatch between number of parameters and number of limits supplied! Problems may occur")
   
   # Check for same data structures of y and t
   if (length(t) != n) stop("y and t must have same length.")
@@ -183,7 +179,12 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
   cis <- list()
   
   # Build amplitude covariances and inverse covariances
-  if (is.null(amp_cov)) amp_cov <- diag_covariance
+  if (is.null(amp_cov)) {
+    amp_cov <- function(t, par) diag(K*length(t))
+    amp_cov_par <- c()
+    paramMax <- logical(0)
+  }
+  n_par_amp <- length(amp_cov_par)
   
   inv_amp_cov <- attr(amp_cov, 'inv_cov_fct')
   inv_amp <- !is.null(attr(amp_cov, 'inv_cov_fct'))
@@ -229,7 +230,10 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
     Adiffs[[i]] <- Ad2(u[[i]], y[[i]])
     
   }
-  
+
+  # Check if no. of (lower) parameter limits correspond to no. of parameters
+  if (!is.null(like_optim_control$lower) && length(like_optim_control$lower) > 1 && length(like_optim_control$lower) != n_par_amp + n_par_warp)
+    warning("Mismatch between number of parameters and number of limits supplied! Problems may occur")
   
   # Estimate spline weights
   c <- spline_weights(u, t, warp_fct, w, Sinv, basis_fct, K = 1, design=design)

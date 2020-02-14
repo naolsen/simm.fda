@@ -80,7 +80,7 @@ Amplitude covariance uses all time points from first observation coordinate, all
 Parallel arguments:
 
 \code{warp prediction} runs the inner loop of warp prediction in parallel. \code{likelihood} calculates the likelihood in parallel.
-\code{amplitude covariance} updates (inverse) covariances in parallel (outside of outer loop). \code{spline weights} is currently ignored.
+\code{amplitude covariance} updates (inverse) covariances in parallel (outside of outer loop). \code{spline weights} runs estimation of spline weights in parallel.
 Note that \code{simm.fda} just calls \code{foreach} and does not provide any tools for handling parallelization objects (this is a deliberate design strategy).
 }
 \examples{

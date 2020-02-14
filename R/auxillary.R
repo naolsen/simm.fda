@@ -74,6 +74,7 @@ RZ.ting.spammed <- expression({
 #' @param weights weights (optional)
 #' @param K dimension
 #' @param design design matrix (as a list)
+#' @param parallel Calculate the sum elements in parallel?
 #' @rdname Spline_weights
 #' 
 #' @details 
@@ -82,7 +83,7 @@ RZ.ting.spammed <- expression({
 #' @return A matrix with spline weights
 #' @export
 #'
-spline_weights <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K, design) {
+spline_weights <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K, design, parallel = FALSE) {
   n <- length(y)
   if(length(design) != n) stop('Error! Unequal lengths of design and y')
   m <- sapply(y, nrow)
@@ -90,19 +91,31 @@ spline_weights <- function(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K
   nb <- attr(basis_fct, 'df')*K*des
   
   if (is.null(weights)) weights <- rep(1, n)
-  
-  Dmat <- matrix(0, nb, nb)
-  dvec <- matrix(0, nb, 1)
-  
-  for (i in 1:n) {
-    # Rewrite LS to reduce memory and calculation time.
-    basis <- diag(K) %x%  basis_fct(warp_fct(w[, i], t[[i]]))
-    bSinv <- weights[i] * (t(basis) %*% Sinv[[i]])
-    Dmat <- Dmat + (design[[i]] %o% design[[i]]) %x% (bSinv %*% basis)
-    dvec <- dvec + design[[i]] %x% (bSinv %*% as.numeric(y[[i]]))
+
+
+    if (parallel) {
+    dmat.dvec <-
+      foreach(i = 1:n, yi = y, Sinvi = Sinv, ti = t, .combine = '+') %dopar% {
+
+        basis <- diag(K) %x%  basis_fct(warp_fct(w[, i], ti))
+        bSinv <- weights[i] * (t(basis) %*% Sinvi)
+        c((design[[i]] %o% design[[i]]) %x% (bSinv %*% basis), design[[i]] %x% (bSinv %*% as.numeric(yi)))
+      }
+    Dmat <- matrix(dmat.dvec[1:(nb*nb)] , nb, nb)
+    dvec <- matrix(dmat.dvec[length(Dmat)+1:nb], nb , 1)
   }
-  
-  
+  else {
+    Dmat <- matrix(0, nb, nb)
+    dvec <- matrix(0, nb, 1)
+    for (i in 1:n) {
+      # Rewrite LS to reduce memory and calculation time.
+      basis <- diag(K) %x%  basis_fct(warp_fct(w[, i], t[[i]]))
+      bSinv <- weights[i] * (t(basis) %*% Sinv[[i]])
+      Dmat <- Dmat + (design[[i]] %o% design[[i]]) %x% (bSinv %*% basis)
+      dvec <- dvec + design[[i]] %x% (bSinv %*% as.numeric(y[[i]]))
+    }
+  }
+
   if (attr(basis_fct, 'increasing')) {
     
     intercept <- !(attr(basis_fct, 'intercept')) 

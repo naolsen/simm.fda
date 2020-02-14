@@ -62,7 +62,7 @@
 #' Parallel arguments:
 #'
 #' \code{warp prediction} runs the inner loop of warp prediction in parallel. \code{likelihood} calculates the likelihood in parallel.
-#' \code{amplitude covariance} updates (inverse) covariances in parallel (outside of outer loop). \code{spline weights} is currently ignored.
+#' \code{amplitude covariance} updates (inverse) covariances in parallel (outside of outer loop). \code{spline weights} runs estimation of spline weights in parallel.
 #' Note that \code{simm.fda} just calls \code{foreach} and does not provide any tools for handling parallelization objects (this is a deliberate design strategy).
 #'
 #'
@@ -253,7 +253,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
     warning("Mismatch between number of parameters and number of limits supplied! Problems may occur")
   
   # Estimate spline weights
-  c <- spline_weights(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design)
+  c <- spline_weights(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design, parallel = 'spline weights' %in% parallel)
   
   # Construct warp derivative
   dwarp <- list()
@@ -317,7 +317,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
       }
       else cat("No warping function provided! Skipping inner optimization.")
       # Update spline weights
-      c <- spline_weights(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design)
+      c <- spline_weights(y, t, warp_fct, w, Sinv, basis_fct, K = K, design=design, parallel = 'spline weights' %in% parallel)
       
       if (warp_change[2] < 1e-2 / sqrt(mw)) break 
       

@@ -4,7 +4,8 @@
 \alias{spline_weights}
 \title{Spline weights}
 \usage{
-spline_weights(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K, design)
+spline_weights(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K, design,
+  parallel = FALSE)
 }
 \arguments{
 \item{y}{list of observations}
@@ -24,6 +25,8 @@ spline_weights(y, t, warp_fct, w, Sinv, basis_fct, weights = NULL, K, design)
 \item{K}{dimension}
 
 \item{design}{design matrix (as a list)}
+
+\item{parallel}{Calculate the sum elements in parallel?}
 }
 \value{
 A matrix with spline weights

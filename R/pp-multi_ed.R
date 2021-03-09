@@ -375,9 +375,9 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
       
       Ad2vals <- list()
       for (i in 1:n) Ad2vals[[i]] <- Ad2(u[[i]], y[[i]])
-      
-      if (n_par_warp > 0) like_fct <- function(pars) {
-        
+
+      like_fct <- function(pars) {
+
         par <- amp_cov_par
         if (warp_opt) {
           param.w <- pars[p_warp]
@@ -388,9 +388,7 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
           par[par1]<- pars
         }
         likelihood.ed(par, param.w, r = r, Zis = Zis, A.diff2 = Ad2vals, amp_cov = amp_cov, warp_cov = warp_cov, t = t, tw = tw)
-        
       }
-      else stop("not implemented without warp optimization!")
       
       
       # Likelihood gradient

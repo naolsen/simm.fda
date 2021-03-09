@@ -34,18 +34,14 @@ likelihood.ed <- function (param, param.w, r, Zis, A.diff2, amp_cov, warp_cov, t
     
     rr <- as.numeric(r[[i]])
     ZZ <- Zis[[i]]
-    
-    if (!is.null(amp_cov)) {
-      S <- amp_cov(t[[i]], param)
-      if (!is.null(warp_cov)) {
-        S <- S + ZZ %*% C %*% Matrix::t(ZZ)
-        
-        U <- tryCatch(chol(S), error = function(e) NULL)
-        if (is.null(U)) return(1e10) ## Exception handling;
-      }}
-    else {
-      S <- U <- diag(1, m[i])
+
+    S <- amp_cov(t[[i]], param)
+    if (!is.null(warp_cov)) {
+      S <- S + ZZ %*% C %*% Matrix::t(ZZ)
     }
+    U <- tryCatch(chol(S), error = function(e) NULL)
+    if (is.null(U)) return(1e10) ## Exception handling;
+
     sq <- sq + sum(backsolve(U, rr, transpose = TRUE)^2)
     
     
@@ -180,7 +176,7 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
   
   # Build amplitude covariances and inverse covariances
   if (is.null(amp_cov)) {
-    amp_cov <- function(t, par) diag(K*length(t))
+    amp_cov <- function(t, par) diag(length(t))
     amp_cov_par <- c()
     paramMax <- logical(0)
   }

@@ -2,7 +2,7 @@
 # R package simm.fda
 Simultaneous inference for misaligned functional data.
 
-Author: Niels Olsen <niels.olsen@math.ku.dk>
+Author: Niels Olsen (current affiliation: Techincal University of Denmark, email: nalo@dtu.dk)
 
 Version: 1.0.10
 

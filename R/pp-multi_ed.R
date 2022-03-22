@@ -296,18 +296,16 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
             warp_change[2] <- max(warp_change[2], abs(w[, i] -  w_res[[i]]))
             w[, i] <- w_res[[i]]
           }}
-        
-        for (i in 1:n) {
+      }
+      else cat("No warping function provided! Skipping inner optimization.\n")
+
+      for (i in 1:n) {
           vts[[i]] <- basis_fct(warp_fct(w[,i], t[[i]])) %*% cis[[i]]
           
           u[[i]] <- optim(u[[i]], posterior.lik_u, y = y[[i]], Sinv = Sinv[[i]], vt = vts[[i]], A.fct = ed_fct)$par
           Avals[i] <- sum(ed_fct(u[[i]], y[[i]])- y[[i]]*u[[i]])
           Adiffs[[i]] <- Ad2(u[[i]], y[[i]])
         }
-        
-        
-      }
-      else cat("No warping function provided! Skipping inner optimization.")
       # Update spline weights
       c <- spline_weights(u, t, warp_fct, w, Sinv, basis_fct, K = 1, design=design)
       

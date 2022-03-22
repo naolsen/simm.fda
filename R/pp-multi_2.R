@@ -170,9 +170,6 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
     likelihood <- like.nowarp
     cat("No warping detected\n")
   }
-  else if(plik) {
-    cat("Using parallelized likelihood\n")
-  }
   if (use.laplace) {
     cat("Using true laplace approximation\n")
     likelihood <- likelihood.lap
@@ -185,7 +182,7 @@ ppMulti <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, 
   for (i in 1:n) {
     if (!is.matrix(y[[i]])) stop("Observations in y must be matrices!")
     if (length(t[[i]]) != m[i]) stop("Observations in y and t must have same length.")
-    missing_indices <- is.na(y[[i]][,1])
+    missing_indices <- is.na(y[[i]][,1]) | is.na(t[[i]])
     y[[i]] <- y[[i]][!missing_indices, , drop = FALSE]
     t[[i]] <- t[[i]][!missing_indices]
   }

@@ -39,7 +39,6 @@
 #' @param inner_parallel Should optimization of warps and matrices for EM algorithm be done in parallel?
 #' @param save_temp Save estimates after each outer iteration? NULL or the file path.
 #' @param w0 Starting values for warp. Should only be used if you have results from a previous run.
-#' @param w0 Starting values for spline parameters. Should only be used if you have results from a previous run.
 #' 
 #' @details There has been less check on this function, so I cannot guarantee that it will behave as well as ppMulti.
 #' Requires \code{spam} package, used for faster calculations for sparse matrices.
@@ -52,11 +51,11 @@
 #' @seealso \link{ppMulti}
 #'
 #' @examples See \link{ppMulti}
-ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5),
-                    use.nlm = c(FALSE, FALSE), functional = NULL, 
-                    amp_cov_par=NULL, paramMax = rep(T,length(amp_cov_par)),  warp_opt = TRUE, parallel.lik = c(FALSE, FALSE),
+ppMulti.em <- function(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL, iter = c(5, 5), w0 = NULL,
+                    amp_cov_par=NULL, use.nlm = c(FALSE, FALSE),
+                    paramMax = rep(T,length(amp_cov_par)),  warp_opt = TRUE, parallel.lik = c(FALSE, FALSE),
                     like_optim_control = list(), pr=TRUE, design = NULL, inner_parallel = c(TRUE, TRUE),
-                    save_temp = NULL, w0 = NULL, c0 = NULL) {
+                    save_temp = NULL) {
   
   require("spam")
   

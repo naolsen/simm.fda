@@ -18,7 +18,7 @@ nlm.bound(fct, p, lower, upper, ...)
 \item{...}{Further arguments to nlm}
 }
 \value{
-output from nlm, but with estimates transformed back.
+
 }
 \description{
 Performs bounded (box-constrained) non-linear minimization using the fast but unconstrained \code{nlm} optimizer. 

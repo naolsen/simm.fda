@@ -63,7 +63,7 @@ ppMulti returns a warning if applied on one-dimensional functional data.
 Control parameters:
 
 \code{lower}, \code{upper}, method, ndeps, \code{maxit} will be sent to optim/nlm. The first indices in lower/upper are warp parameter bounds.
-#' See \link{optim} for more details.
+See \link{optim} for more details.
 
 If \code{use.nlm} is selected the optimization is performed using the \code{nlm} function.
 Bounds are handled through transformation. Note that the optimization will not be able to actually reach the bounds.
@@ -116,9 +116,9 @@ wrapper <- function(t, par) {
 lower <- c(1e-4, 1e-4,rep(1e-4, 4))
 upper <- rep(1e5, 6)
 
-# Note this will take a long time:
+# Note this will take a long time to run:
 mcd.res <-ppMulti(MCD.data, MCD.time, bf, wf, amp_cov = wrapper, warp_cov, amp_cov_par = c(0.2, rep(100, 3)), pr = F, paramMax = rep(T, 4),
-                  like_optim_control = list(lower = lower, upper = upper), win = F, iter = c(10, 10))
+                  like_optim_control = list(lower = lower, upper = upper), iter = c(10, 10))
 }
 
 }

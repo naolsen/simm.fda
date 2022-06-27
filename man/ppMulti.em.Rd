@@ -4,13 +4,26 @@
 \alias{ppMulti.em}
 \title{ppMulti with update steps using EM algorithm}
 \usage{
-ppMulti.em(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
-  iter = c(5, 5), use.nlm = c(FALSE, FALSE), functional = NULL,
-  amp_cov_par = NULL, paramMax = rep(T, length(amp_cov_par)),
-  warp_opt = TRUE, parallel.lik = c(FALSE, FALSE),
-  like_optim_control = list(), pr = TRUE, design = NULL,
-  inner_parallel = c(TRUE, TRUE), save_temp = NULL, w0 = NULL,
-  c0 = NULL)
+ppMulti.em(
+  y,
+  t,
+  basis_fct,
+  warp_fct,
+  amp_cov = NULL,
+  warp_cov = NULL,
+  iter = c(5, 5),
+  w0 = NULL,
+  amp_cov_par = NULL,
+  use.nlm = c(FALSE, FALSE),
+  paramMax = rep(T, length(amp_cov_par)),
+  warp_opt = TRUE,
+  parallel.lik = c(FALSE, FALSE),
+  like_optim_control = list(),
+  pr = TRUE,
+  design = NULL,
+  inner_parallel = c(TRUE, TRUE),
+  save_temp = NULL
+)
 }
 \arguments{
 \item{y}{List of observations in matrix form. NAs allowed}
@@ -28,9 +41,11 @@ ppMulti.em(y, t, basis_fct, warp_fct, amp_cov = NULL, warp_cov = NULL,
 \item{iter}{two or three dimensional integer of maximal number of outer iterations &
 maximal number of inner iterations per outer iteration and optionally maximal number of em updates (default = 1).}
 
-\item{use.nlm}{Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.}
+\item{w0}{Starting values for warp. Should only be used if you have results from a previous run.}
 
 \item{amp_cov_par}{Starting values for amplitude covariance parameters. There are no defaults.}
+
+\item{use.nlm}{Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.}
 
 \item{paramMax}{Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.}
 
@@ -47,8 +62,6 @@ maximal number of inner iterations per outer iteration and optionally maximal nu
 \item{inner_parallel}{Should optimization of warps and matrices for EM algorithm be done in parallel?}
 
 \item{save_temp}{Save estimates after each outer iteration? NULL or the file path.}
-
-\item{w0}{Starting values for spline parameters. Should only be used if you have results from a previous run.}
 }
 \value{
 A list of estimates

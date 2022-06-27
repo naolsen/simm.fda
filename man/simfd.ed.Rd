@@ -50,6 +50,8 @@ May be overwritten by supplying control parameters.}
 \item{inner_parallel}{Should the inner optimization be done in parallel?}
 
 \item{save_temp}{Save estimates after each outer iteration? NULL or the file path.}
+
+\item{pr}{Printing option.}
 }
 \value{
 A list of estimates and predictions of w and u
@@ -58,7 +60,8 @@ A list of estimates and predictions of w and u
 This function applies the simm.fda methodology in a setting of certain exponential models (e.g. poisson) followiong the approach outlined in article[..]
 }
 \details{
-\code{sim.fd} can only handle one-dimensional functional data. It should NOT be applied to Gaussian data, unless sigma^2 is known and fixed beforehand.
+sim.fd can only handle one-dimensional functional data. It should NOT be applied to Gaussian data, unless sigma^2 is known and fixed beforehand.
+Not all relevant control parameters have been checked for compliance; however parallelization does work (on Linux)
 }
 \seealso{
 \link{ppMulti}

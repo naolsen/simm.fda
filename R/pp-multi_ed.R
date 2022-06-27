@@ -76,7 +76,7 @@ posterior.lik_u <- function(u, y, vt, Sinv, A.fct) { ## alpha = 1/r
 #' maximal number of inner iterations per outer iteration.
 #' @param w0 Starting values for predicted warps. Should only be used if you have results from a previous run.
 #' @param u0 Starting values for predicted trajectories. Should only be used if you have results from a previous run. 
-#' @param use.nlm se \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.
+#' @param use.nlm Use \code{nlm} instead of \code{optim} for optimization? First index for outer loop, second index for inner loop.
 #' @param suppressLik Suppress if likelihood has increased
 #' @param amp_cov_par Starting values for amplitude covariance parameters. There are no defaults.
 #' @param paramMax Logical vector. Which amplitude parameters to optimise over? Defaults to all parameters.
@@ -85,7 +85,7 @@ posterior.lik_u <- function(u, y, vt, Sinv, A.fct) { ## alpha = 1/r
 #' @param like_optim_control  List of control options for optimization in outer loop. See \link{ppMulti} for details.
 #' @param pr Printing option.
 #' @param design Design for the experiments. Should be given as a list of one-dimensional vectors or as a design matrix.
-#' @param inner_parallel  Should the inner optimization be done parallelly?
+#' @param inner_parallel  Should the inner optimization be done in parallel?
 #' @param save_temp  Save estimates after each outer iteration? NULL or the file path.
 #' 
 #' @details sim.fd can only handle one-dimensional functional data. It should NOT be applied to Gaussian data, unless sigma^2 is known and fixed beforehand.
@@ -103,7 +103,7 @@ simfd.ed <- ppMulti.ed <- function(y, t, basis_fct, warp_fct, ed_fct, amp_cov = 
                           amp_cov_par=NULL, paramMax = rep(TRUE, length(amp_cov_par)), warp_opt = TRUE,
                           like_optim_control = list(), design = NULL, inner_parallel = FALSE, save_temp = NULL) {
   
-  ## Ops�tnings-ting
+  ## Opsætnings-ting
   
   nouter <- iter[1] + 1
   if (is.null(amp_cov) & is.null(warp_cov)) nouter <- 1
